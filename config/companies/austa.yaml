@@ -1,0 +1,118 @@
+# AUSTA Group - Hospital Network Configuration
+# Chart of accounts mapping for CashFlow Story 4 Chapters
+
+company:
+  name: "AUSTA Group"
+  industry: healthcare
+  currency: BRL
+  fiscal_year_start: "01"  # January
+
+erp:
+  type: totvs
+  xml_path: /data/erp/exports/
+  file_pattern: "balancete_*.xml"
+  encoding: utf-8
+
+account_mapping:
+  # Chapter 1 - Profitability
+  revenue:
+    accounts: ["3.1"]
+    label: "Receita Operacional Bruta"
+
+  deductions:
+    accounts: ["3.2"]
+    label: "Deduções e Impostos sobre Vendas"
+
+  cogs:
+    accounts: ["4.1"]
+    label: "Custos dos Serviços Prestados"
+    reclassifications:
+      - from: "4.2.01"
+        to: "4.1"
+        description: "Reclassificação pessoal serviços hospitalares"
+      - from: "4.2.02"
+        to: "4.1"
+        description: "Reclassificação materiais serviços hospitalares"
+
+  operating_expenses:
+    accounts: ["4.2"]
+    label: "Despesas Administrativas"
+    exclude: ["4.2.01", "4.2.02"]  # Already reclassified to COGS
+
+  financial_revenue:
+    accounts: ["3.3"]
+    label: "Receitas Financeiras"
+
+  financial_expenses:
+    accounts: ["4.3"]
+    label: "Despesas Financeiras"
+
+  # Chapter 2 - Working Capital
+  accounts_receivable:
+    accounts: ["1.1.03"]
+    label: "Contas a Receber"
+    subcategories:
+      operadoras: ["1.1.03.01"]
+      sus: ["1.1.03.02"]
+      particular: ["1.1.03.03"]
+
+  inventory:
+    accounts: ["1.1.04"]
+    label: "Estoques (Medicamentos e Materiais)"
+
+  accounts_payable:
+    accounts: ["2.1.01"]
+    label: "Fornecedores"
+
+  # Chapter 3 - Other Capital
+  fixed_assets:
+    accounts: ["1.2.03"]
+    label: "Ativo Imobilizado Líquido"
+
+  # Chapter 4 - Funding
+  short_term_debt:
+    accounts: ["2.1.02"]
+    label: "Empréstimos CP"
+
+  long_term_debt:
+    accounts: ["2.2.01"]
+    label: "Empréstimos LP"
+
+  equity:
+    accounts: ["2.3"]
+    label: "Patrimônio Líquido"
+
+  cash:
+    accounts: ["1.1.01"]
+    label: "Caixa e Equivalentes"
+
+# Override default thresholds for healthcare industry
+thresholds:
+  gross_margin_pct:
+    good: 15
+    average: 10
+  overhead_pct:
+    good: 25
+    average: 30
+  ar_days:
+    good: 45
+    average: 60
+  inventory_days:
+    good: 10
+    average: 20
+
+power_of_one:
+  valuation_multiple: 6.0
+  sensitivity:
+    price_change_pct: 1.0
+    volume_change_pct: 1.0
+    cogs_change_pct: 1.0
+    overhead_change_pct: 1.0
+    ar_days_change: 1
+    inventory_days_change: 1
+    ap_days_change: 1
+
+output:
+  formats: [xlsx, html, pdf, json]
+  output_path: ./reports/
+  language: pt-BR

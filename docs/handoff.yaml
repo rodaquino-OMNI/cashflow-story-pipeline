@@ -1,0 +1,629 @@
+# ==============================================================================
+# AGENT HANDOFF DOCUMENT — CashFlow Story Pipeline
+# Created: 2026-02-23
+# Purpose: Enable any agent to resume implementation from exact current state
+# ==============================================================================
+
+project:
+  name: cashflow-story-pipeline
+  description: >
+    Batch processing system that ingests ERP XML/XLSX exports and produces
+    board-ready financial reports using Alan Miltz's CashFlow Story methodology.
+    Portuguese (pt-BR) output labels, Decimal precision throughout.
+  repo_path: /Users/rodrigo/claude-projects/cashflow-story-pipeline
+  branch: main
+  python_interpreter: /opt/homebrew/bin/python3.11
+  # CRITICAL: System Python is 3.9.6 — do NOT use `python3` or `python`.
+  # The package requires >=3.11. Always use the full path above.
+  install_command: /opt/homebrew/bin/python3.11 -m pip install -e ".[dev]"
+  test_command: /opt/homebrew/bin/python3.11 -m pytest tests/ -v
+  run_tests_milestone1: /opt/homebrew/bin/python3.11 -m pytest tests/test_brazilian_tax.py -v
+
+environment:
+  os: macOS Darwin 25.3.0
+  shell: zsh
+  git_status: all project files previously untracked — first real commit done in this handoff
+  pydantic_warnings: >
+    Pydantic v2 deprecation warnings (class-based Config, json_encoders) are present in models.
+    Do NOT fix them — they are pre-existing in the blueprint models. Focus only on stub implementations.
+
+# ==============================================================================
+# MILESTONE STATUS
+# ==============================================================================
+
+milestones:
+  milestone_1:
+    name: "Foundation utilities + Brazilian tax"
+    status: COMPLETE
+    test_result: "8/8 PASSED"
+    files_implemented:
+      - path: src/utils/formatters.py
+        functions:
+          - format_brl(value) -> str          # R$ 1.234,56 format, negatives with -R$
+          - format_percentage(value) -> str    # auto-detects 0-1 vs 0-100 range
+          - format_days(value) -> str          # "23 dias" / "1 dia"
+          - movement_indicator(current, prior, show_value=False) -> str  # ↑ ↓ → with optional %
+      - path: src/utils/logger.py
+        functions:
+          - setup_logging(level, log_file, structured) -> None   # structlog config
+          - get_logger(name) -> structlog.BoundLogger            # module logger helper
+      - path: src/utils/validators.py
+        functions:
+          - validate_balance_sheet(period_result) -> Tuple[bool, List[str]]
+          - validate_cash_reconciliation(period_result) -> Tuple[bool, List[str]]
+          - validate_period_data(mapped) -> Tuple[bool, List[str]]
+      - path: src/calc/brazilian_tax.py
+        functions:
+          - calculate_brazilian_tax(ebt, period_months=1) -> Tuple[Decimal, Decimal]
+            # Returns (irpj, csll). Key logic:
+            #   IRPJ = 15% base + 10% surtax when monthly_profit > R$20,000
+            #   CSLL = 9% on EBT. Zero for negative/zero EBT.
+            #   Canonical test: EBT=281500/3mo → irpj=64375, csll=25335, total=89710
+      - path: tests/test_brazilian_tax.py
+        status: IMPLEMENTED AND PASSING (8 tests)
+
+  milestone_2:
+    name: "Calculation engine (Chapter 1-4 calcs)"
+    status: NOT STARTED — all stubs are `pass`
+    files_to_implement:
+      - path: src/calc/income_statement.py
+        function: calculate_income_statement(mapped: MappedData) -> PeriodResult
+        logic: |
+          Complete DRE waterfall:
+          net_revenue = gross_revenue - returns_deductions
+          gross_profit = net_revenue - cogs
+          gross_margin_pct = gross_profit / net_revenue * 100  (0 if net_rev=0)
+          ebitda = gross_profit - operating_expenses
+          ebitda_margin_pct = ebitda / net_revenue * 100
+          ebit = ebitda - depreciation_amortization
+          ebit_margin_pct = ebit / net_revenue * 100
+          ebt = ebit - financial_expenses + financial_income + other_income_expenses
+          (irpj, csll) = calculate_brazilian_tax(ebt, period_months)
+          net_income = ebt - irpj - csll
+          net_margin_pct = net_income / net_revenue * 100
+          Copy all fields from mapped to PeriodResult (company, period, period_type, etc.)
+          period_months: derive from mapped.period_type ("month"=1, "quarter"=3, "year"=12)
+        note: "Import calculate_brazilian_tax from src.calc.brazilian_tax"
+
+      - path: src/calc/working_capital.py
+        function: calculate_working_capital(mapped: MappedData, days_in_period=30) -> PeriodResult
+        logic: |
+          DSO = (accounts_receivable / net_revenue) * days_in_period   [0 if rev=0]
+          DIO = (inventory / cogs) * days_in_period                    [0 if cogs=0]
+          DPO = (accounts_payable / cogs) * days_in_period             [0 if cogs=0]
+          CCC = DSO + DIO - DPO
+          working_capital = accounts_receivable + inventory - accounts_payable
+          working_capital_investment = working_capital  (no prior period here)
+          Use aliases: days_sales_outstanding=DSO, days_inventory_outstanding=DIO,
+                       days_payable_outstanding=DPO, cash_conversion_cycle=CCC
+          PeriodResult uses populate_by_name=True — set fields by their alias names.
+        note: "Safe division — never divide by zero, return Decimal(0) instead"
+
+      - path: src/calc/balance_sheet.py
+        function: estimate_balance_sheet(period_result: PeriodResult) -> PeriodResult
+        logic: |
+          ppe_net = ppe_gross - accumulated_depreciation  (if provided via mapped)
+          intangibles_net = intangibles
+          other_capital_net = other_assets - other_liabilities
+          total_debt = short_term_debt + long_term_debt
+          net_debt = total_debt - cash
+          shareholders_equity = already set from mapped
+          NOTE: The function receives a PeriodResult that already has balance sheet
+          items populated from income_statement calc. It computes derived BS aggregates.
+          Return the updated PeriodResult with ppe_net, intangibles_net,
+          other_capital_net, total_debt, net_debt all set.
+        note: |
+          MappedData has ppe_gross, accumulated_depreciation, intangibles,
+          other_assets, other_liabilities, cash, short_term_debt, long_term_debt.
+          These need to be passed into PeriodResult before calling estimate_balance_sheet.
+
+      - path: src/calc/cash_flow.py
+        function: calculate_cash_flow(period_result: PeriodResult) -> PeriodResult
+        logic: |
+          Operating Cash Flow (OCF):
+            OCF = net_income + depreciation_amortization - working_capital_investment
+
+          Investing Cash Flow (ICF):
+            CAPEX = change in ppe_net + depreciation_amortization (approximation)
+            ICF = -CAPEX - other_capital_investment
+
+          Financing Cash Flow:
+            FCF_fin = -(change in total_debt) + 0  [approx: use negative debt service]
+            NOTE: Without prior period, set financing_cash_flow = 0 as placeholder
+
+          Net Cash Flow:
+            net_cash_flow = operating_cash_flow + investing_cash_flow + financing_cash_flow
+
+          Free Cash Flow:
+            free_cash_flow = operating_cash_flow - abs(investing_cash_flow)
+        note: >
+          Without a prior period, CAPEX is not calculable precisely.
+          Use ppe_net change as proxy (set to 0 if not available).
+          Pipeline stage will call with prior period data when available.
+
+      - path: src/calc/ratios.py
+        function: calculate_ratios(period_result: PeriodResult) -> PeriodResult
+        logic: |
+          # Current assets = accounts_receivable + inventory + cash
+          # cash = total_debt - net_debt (derived)
+          cash = period_result.total_debt - period_result.net_debt
+          current_assets = accounts_receivable + inventory + cash
+          current_liabilities = accounts_payable + (total_debt * fraction)
+          # Safe approximation: use total_debt as proxy for current+lt debt combined
+
+          current_ratio = current_assets / accounts_payable   [0 if denom=0]
+          quick_ratio = (current_assets - inventory) / accounts_payable  [0 if denom=0]
+
+          debt_to_equity = total_debt / shareholders_equity  [0 if equity=0]
+          roe_pct = net_income / shareholders_equity * 100    [0 if equity=0]
+
+          # ROA: need total_assets = current_assets + ppe_net + intangibles_net + other_capital_net
+          total_assets = current_assets + ppe_net + intangibles_net + max(0, other_capital_net)
+          roa_pct = net_income / total_assets * 100    [0 if assets=0]
+
+          # ROCE: EBIT(1-tax_rate) / (equity + debt)
+          capital_employed = shareholders_equity + total_debt
+          tax_rate = Decimal("0.34")  # approx combined IRPJ+CSLL max rate
+          roce_pct = ebit * (1 - tax_rate) / capital_employed * 100  [0 if cap_emp=0]
+        note: "Set period_result fields current_ratio, quick_ratio, debt_to_equity, roe_pct, roa_pct, roce_pct"
+
+      - path: src/calc/power_of_one.py
+        function: calculate_power_of_one(period_result: PeriodResult) -> List[PowerOfOneLever]
+        logic: |
+          7 levers — each returns a PowerOfOneLever object:
+
+          1. REVENUE (Chapter 1):
+             change_amount = net_revenue * 0.01
+             profit_impact = change_amount * (ebit_margin_pct / 100)
+             cash_impact = profit_impact
+             value_impact = profit_impact * valuation_multiple (default 6.0)
+
+          2. COGS (Chapter 1):
+             change_amount = cogs * 0.01
+             profit_impact = change_amount
+             cash_impact = change_amount
+             value_impact = profit_impact * 6.0
+
+          3. OVERHEAD/OPEX (Chapter 1):
+             change_amount = operating_expenses * 0.01
+             profit_impact = change_amount
+             cash_impact = change_amount
+             value_impact = profit_impact * 6.0
+
+          4. AR DAYS (Chapter 2) — 1-day reduction:
+             daily_revenue = net_revenue / 365
+             cash_impact = daily_revenue * 1  (cash freed per day reduction)
+             profit_impact = Decimal("0")
+             value_impact = cash_impact
+
+          5. INVENTORY DAYS (Chapter 2) — 1-day reduction:
+             daily_cogs = cogs / 365
+             cash_impact = daily_cogs * 1
+             profit_impact = Decimal("0")
+             value_impact = cash_impact
+
+          6. AP DAYS (Chapter 2) — 1-day increase (negative = cash freed by extending):
+             daily_cogs = cogs / 365
+             cash_impact = daily_cogs * 1  (positive: extending AP saves cash)
+             profit_impact = Decimal("0")
+             value_impact = cash_impact
+
+          7. CAPEX (Chapter 3):
+             change_amount = abs(investing_cash_flow) * 0.01
+             cash_impact = change_amount
+             profit_impact = change_amount * Decimal("0.10")  # approx depreciation
+             value_impact = cash_impact
+
+          Return list sorted by abs(cash_impact) descending.
+          Lever IDs: "revenue", "cogs", "overhead", "ar_days", "inventory_days",
+                     "ap_days", "capex"
+          Labels (Portuguese):
+            revenue → "Receita"
+            cogs → "Custo dos Produtos/Serviços"
+            overhead → "Despesas Operacionais"
+            ar_days → "Prazo de Recebimento"
+            inventory_days → "Prazo de Estoque"
+            ap_days → "Prazo de Pagamento"
+            capex → "Investimentos (CAPEX)"
+
+      - path: src/calc/cash_quality.py
+        function: classify_cash_quality(period_result: PeriodResult) -> List[CashQualityMetric]
+        logic: |
+          6 metrics — grade G/A/B based on thresholds:
+
+          1. OCF_MARGIN: ocf_margin = operating_cash_flow / net_revenue * 100
+             G: > 25, A: 10-25, B: < 10
+             direction: higher_is_better
+
+          2. FREE_CASH_FLOW: fcf_pct = free_cash_flow / net_revenue * 100
+             G: > 0, A: -5 to 0, B: < -5
+             direction: higher_is_better
+
+          3. WC_REVENUE: wc_pct = working_capital / net_revenue * 100
+             G: < 10, A: 10-20, B: > 20
+             direction: lower_is_better
+
+          4. CCC_DAYS: value = cash_conversion_cycle
+             G: < 30, A: 30-60, B: > 60
+             direction: lower_is_better
+
+          5. NET_DEBT_EBITDA: ratio = net_debt / ebitda  [0 if ebitda=0]
+             G: < 2, A: 2-4, B: > 4
+             direction: lower_is_better
+
+          6. INTEREST_COVERAGE: cov = ebit / financial_expenses  [0 if fin_exp=0]
+             G: > 5, A: 3-5, B: < 3
+             direction: higher_is_better
+
+          Grade logic for higher_is_better:
+            if value >= threshold_good: grade = "G"
+            elif value >= threshold_average: grade = "A"
+            else: grade = "B"
+
+          Grade logic for lower_is_better:
+            if value <= threshold_good: grade = "G"
+            elif value <= threshold_average: grade = "A"
+            else: grade = "B"
+
+          Labels (Portuguese):
+            ocf_margin → "Margem Fluxo de Caixa Operacional %"
+            free_cash_flow → "Fluxo de Caixa Livre %"
+            wc_revenue → "Capital de Giro / Receita %"
+            ccc_days → "Ciclo de Conversão de Caixa (dias)"
+            net_debt_ebitda → "Dívida Líquida / EBITDA"
+            interest_coverage → "Cobertura de Juros"
+
+      - path: src/calc/marginal_cashflow.py
+        function: calculate_marginal_cash_flow(period_result: PeriodResult) -> Dict[str, Decimal]
+        logic: |
+          fcf_percent = free_cash_flow / net_revenue   [0 if rev=0]
+          wc_percent = working_capital_investment / net_revenue  [0 if rev=0]
+          mcf_percent = fcf_percent - wc_percent
+          cash_per_1pct_growth = mcf_percent * net_revenue * Decimal("0.01")
+
+          Return dict:
+            {
+              "fcf_percent": fcf_percent,
+              "wc_percent": wc_percent,
+              "mcf_percent": mcf_percent,
+              "cash_per_1pct_growth": cash_per_1pct_growth
+            }
+
+    tests_to_implement:
+      - path: tests/test_power_of_one.py
+        approach: |
+          Use conftest.py sample_mapped_data_q1 fixture data:
+          net_revenue = 40100000 - 2500000 = 37600000
+          cogs = 30650000
+          operating_expenses = 19650000
+          accounts_receivable = 18500000
+          inventory = 3200000
+          accounts_payable = 8900000
+
+          For each test, build a PeriodResult with the appropriate fields set,
+          call calculate_power_of_one(), then assert on specific lever values.
+          test_all_seven_returned: assert len(result) == 7
+          test_price_lever: assert result for "revenue" lever has correct profit_impact
+          etc.
+
+      - path: tests/test_cash_quality.py
+        approach: |
+          Build PeriodResult with specific values to trigger each grade.
+          test_good_gross_margin: gross_margin_pct=55 → expect G grade
+          test_bad_gross_margin: gross_margin_pct=15 → expect B grade
+          etc.
+          For healthcare_overrides: pass thresholds from austa.yaml overrides.
+
+  milestone_3:
+    name: "Ingestion layer"
+    status: NOT STARTED — all stubs are `pass`
+    files_to_implement:
+      - path: src/ingest/xml_parser.py
+        class: ERPXMLParser
+        methods:
+          detect_encoding:
+            logic: |
+              Read first 200 bytes of file, look for <?xml ... encoding="..."?>.
+              If found, return that encoding. Otherwise default UTF-8.
+              Try common Brazilian encodings: UTF-8, ISO-8859-1, CP1252.
+          detect_format:
+            logic: |
+              Parse XML root element tag.
+              If root tag contains "balancete" (case-insensitive): return "balancete"
+              If root tag contains "fluxo" or "cashflow": return "fluxo_caixa"
+              Otherwise: return "unknown"
+              Set self.format = result.
+          parse_balancete:
+            logic: |
+              1. Call detect_encoding() to get encoding
+              2. Use ET.parse() with encoding
+              3. Find all <conta> or <account> elements
+              4. For each, extract: codigo/code, descricao/description,
+                 saldoInicial/openingBalance, debitos/debits, creditos/credits,
+                 saldoFinal/closingBalance, periodo/period
+              5. Convert string values to Decimal (handle "," as decimal sep)
+              6. Create AccountEntry for each
+              7. Return List[AccountEntry]
+
+              See tests/fixtures/sample_balancete.xml for the exact XML structure.
+          parse_fluxo_caixa:
+            logic: |
+              Similar to parse_balancete but for <atividade> elements.
+              Map: codigo→code, descricao→description, valor→closing_balance,
+              periodo→period. Set opening_balance=debits=credits=0.
+
+      - path: src/ingest/account_mapper.py
+        class: AccountMapper
+        methods:
+          load_config:
+            logic: |
+              Load YAML from self.config_path.
+              Parse account_mapping section into self.mapping dict:
+                {category_name: [account_codes]}
+              Parse reclassifications if present.
+              Parse thresholds overrides if present.
+              Validate required chapters present.
+          map_accounts:
+            logic: |
+              For each account in accounts list:
+                Find matching category from self.mapping
+                Sum closing_balance into that category
+              Apply reclassifications BEFORE summing:
+                e.g., 4.2.01 → reclassify FROM operating_expenses TO cogs
+              Build MappedData with all aggregated values.
+              Compute derived: net_revenue, gross_profit, ebitda, ebit, ebt.
+              Return MappedData.
+          validate_mapping:
+            logic: |
+              Check: gross_revenue > 0, cogs < gross_revenue,
+              AR >= 0, inventory >= 0, AP >= 0, equity != 0.
+              Return (True, []) if all ok, or (False, [error messages]).
+
+      - path: src/ingest/xlsx_parser.py
+        class: XLSXParser (stub — similar structure to xml_parser)
+        note: "Lower priority than XML parser. Implement parse_balancete() for Excel."
+
+  milestone_4:
+    name: "AI analyst"
+    status: NOT STARTED — all stubs are `pass`
+    files_to_implement:
+      - path: src/ai/analyst.py
+        class: CashFlowStoryAnalyst
+        note: >
+          Use anthropic SDK. Load ANTHROPIC_API_KEY from env.
+          Model: claude-sonnet-4-6 (current model — not claude-opus-4 as in stub).
+          _build_context: extract all PeriodResult metrics as a flat dict.
+          _build_prompt: use PROMPTS dict from src/ai/prompts.py.
+          analyze: call _build_context → _build_prompt → anthropic.messages.create
+                   → return response text.
+          Must handle --no-ai flag (called only when ai is enabled).
+
+  milestone_5:
+    name: "Report generation"
+    status: NOT STARTED — all stubs are `pass`
+    files_to_implement:
+      - path: src/output/excel_report.py
+        class: ExcelReportGenerator
+        note: "Use openpyxl. 10 sheets as documented in stub."
+      - path: src/output/html_dashboard.py
+        class: HTMLDashboardGenerator
+        note: "Use Jinja2 templates."
+      - path: src/output/pdf_report.py
+        class: PDFReportGenerator
+        note: "Use weasyprint to convert HTML to PDF."
+      - path: src/output/json_export.py
+        class: JSONExporter
+        note: "Use pydantic model_dump() with JSON serialization."
+
+  milestone_6:
+    name: "Pipeline orchestrator + CLI + integration tests"
+    status: PARTIAL — pipeline.py has the 6-stage skeleton but all TODOs are pass
+    files_to_implement:
+      - path: src/pipeline.py
+        class: CashFlowStoryPipeline
+        method: run(input_path, output_path, options)
+        logic: |
+          Stage 1 (Ingest): Detect file type (.xml vs .xlsx).
+            Use ERPXMLParser or XLSXParser. Call parse_balancete().
+          Stage 2 (Map): Create AccountMapper(config_path). Call load_config().
+            Call map_accounts(accounts, period). Call validate_mapping().
+          Stage 3 (Calculate): Call in sequence:
+            pr = calculate_income_statement(mapped)
+            pr = calculate_working_capital(mapped, days) merged into pr
+            pr = estimate_balance_sheet(pr)
+            pr = calculate_cash_flow(pr)
+            pr = calculate_ratios(pr)
+          Stage 4 (Analyze):
+            levers = calculate_power_of_one(pr)
+            quality = classify_cash_quality(pr)
+            mcf = calculate_marginal_cash_flow(pr)
+          Stage 5 (Synthesize): If not no_ai:
+            analyst = CashFlowStoryAnalyst(); narrative = analyst.analyze(result)
+          Stage 6 (Export): Based on options["format"], call appropriate generators.
+          Return AnalysisResult with all data.
+      - path: src/main.py
+        note: "Implement run command body: create pipeline, call run(), display summary."
+      - path: tests/test_pipeline.py
+        note: "Replace pytest.skip() with real integration tests using conftest fixtures."
+
+# ==============================================================================
+# CRITICAL DOMAIN KNOWLEDGE
+# ==============================================================================
+
+domain_knowledge:
+  austa_reclassifications:
+    description: |
+      AUSTA hospital group reclassifies 2 OpEx sub-accounts INTO COGS
+      because they are direct patient care costs (not overhead):
+        4.2.01 (Pessoal e Serviços): R$6,500,000 → reclassified FROM opex TO cogs
+        4.2.02 (Materiais e Serviços): R$1,750,000 → reclassified FROM opex TO cogs
+      Result:
+        cogs = 22,400,000 (account 4.1) + 6,500,000 + 1,750,000 = R$30,650,000
+        operating_expenses = 19,650,000 (account 4.2, EXCLUDING 4.2.01 and 4.2.02)
+      This is already done in the conftest.py sample data.
+
+  pydantic_aliases:
+    description: |
+      PeriodResult uses field aliases for working capital days:
+        days_sales_outstanding → alias "dso"
+        days_inventory_outstanding → alias "dio"
+        days_payable_outstanding → alias "dpo"
+        cash_conversion_cycle → alias "ccc"
+      The model has: populate_by_name = True
+      When constructing with keyword args, use the FULL names:
+        PeriodResult(period="Q1", days_sales_outstanding=Decimal("168"))
+      When constructing from dict with short keys, use model_validate():
+        PeriodResult.model_validate({"period": "Q1", "dso": Decimal("168")})
+
+  decimal_precision:
+    description: "All financial values MUST use Decimal, never float."
+    rule: "from decimal import Decimal; use Decimal('0.15') not 0.15"
+
+  currency_format:
+    description: "Brazilian Real: R$ 1.234,56 (period=thousands, comma=decimal)"
+    example: "format_brl(Decimal('1234.56')) → 'R$ 1.234,56'"
+
+  period_months_mapping:
+    month: 1
+    quarter: 3
+    year: 12
+
+  cashflow_story_chapters:
+    chapter_1: "Profitability — DRE waterfall (Revenue → Net Income)"
+    chapter_2: "Working Capital — DSO, DIO, DPO, CCC"
+    chapter_3: "Other Capital — PP&E, CAPEX, Intangibles"
+    chapter_4: "Funding — Debt, Equity, Net Debt"
+
+  three_big_measures:
+    net_cash_flow: "Total change in cash (financing perspective)"
+    operating_cash_flow: "Cash from operations (quality perspective)"
+    marginal_cash_flow: "FCF% - WC% (growth perspective — can growth fund itself?)"
+
+  power_of_one_sensitivity_defaults:
+    price_change_pct: 1.0
+    volume_change_pct: 1.0
+    cogs_change_pct: 1.0
+    overhead_change_pct: 1.0
+    ar_days_change: 1   # days, not percent
+    inventory_days_change: 1
+    ap_days_change: 1
+    valuation_multiple: 6.0  # AUSTA override; default is also 6.0
+
+  sample_data_q1_key_numbers:
+    gross_revenue: 40_100_000
+    returns_deductions: 2_500_000
+    net_revenue: 37_600_000
+    cogs: 30_650_000
+    gross_profit: 6_950_000
+    gross_margin_pct: 18.48  # 6.95/37.6
+    operating_expenses: 19_650_000
+    ebitda: -12_700_000  # negative! company in distress
+    financial_expenses: 1_200_000
+    financial_income: 150_000
+    ebt: approximately -13_750_000  # deep loss (pre-tax)
+    accounts_receivable: 18_500_000
+    inventory: 3_200_000
+    accounts_payable: 8_900_000
+    dso_approx: 180  # high — healthcare payers slow
+    cash_beginning: 2_900_000
+    cash_ending: 1_200_000
+    total_debt: 37_000_000  # 12M ST + 25M LT
+    shareholders_equity: 35_000_000
+
+# ==============================================================================
+# FILE STRUCTURE OVERVIEW
+# ==============================================================================
+
+file_structure:
+  src/:
+    models/:
+      financial_data.py: "AccountEntry, MappedData, PeriodResult, AnalysisResult — DO NOT MODIFY"
+      cashflow_story.py: "PowerOfOneLever, CashQualityMetric, FourChaptersSummary, ThreeBigMeasures — DO NOT MODIFY"
+    calc/:
+      brazilian_tax.py: "IMPLEMENTED — calculate_brazilian_tax(ebt, period_months)"
+      income_statement.py: "STUB — calculate_income_statement(mapped) → PeriodResult"
+      working_capital.py: "STUB — calculate_working_capital(mapped, days) → PeriodResult"
+      balance_sheet.py: "STUB — estimate_balance_sheet(period_result) → PeriodResult"
+      cash_flow.py: "STUB — calculate_cash_flow(period_result) → PeriodResult"
+      ratios.py: "STUB — calculate_ratios(period_result) → PeriodResult"
+      power_of_one.py: "STUB — calculate_power_of_one(period_result) → List[PowerOfOneLever]"
+      cash_quality.py: "STUB — classify_cash_quality(period_result) → List[CashQualityMetric]"
+      marginal_cashflow.py: "STUB — calculate_marginal_cash_flow(period_result) → Dict[str, Decimal]"
+    ingest/:
+      xml_parser.py: "STUB — ERPXMLParser class"
+      xlsx_parser.py: "STUB — XLSXParser class"
+      account_mapper.py: "STUB — AccountMapper class"
+    ai/:
+      analyst.py: "STUB — CashFlowStoryAnalyst class"
+      prompts.py: "Contains PROMPTS dict — already implemented, do not modify"
+    output/:
+      excel_report.py: "STUB — ExcelReportGenerator class"
+      html_dashboard.py: "STUB — HTMLDashboardGenerator class"
+      pdf_report.py: "STUB — PDFReportGenerator class"
+      json_export.py: "STUB — JSONExporter class"
+    utils/:
+      formatters.py: "IMPLEMENTED — format_brl, format_percentage, format_days, movement_indicator"
+      logger.py: "IMPLEMENTED — setup_logging, get_logger"
+      validators.py: "IMPLEMENTED — validate_balance_sheet, validate_cash_reconciliation, validate_period_data"
+    pipeline.py: "PARTIAL STUB — CashFlowStoryPipeline class, run() has stage skeleton but all pass"
+    main.py: "PARTIAL STUB — CLI (click) with run/watch/validate commands, execution bodies are TODO"
+  tests/:
+    conftest.py: "DO NOT MODIFY — sample_mapped_data_q1, sample_mapped_data_q2, sample_period_result"
+    test_brazilian_tax.py: "IMPLEMENTED AND PASSING — 8 tests"
+    test_power_of_one.py: "ALL SKIPPED — needs implementation (11 tests)"
+    test_cash_quality.py: "ALL SKIPPED — needs implementation (9 tests)"
+    test_pipeline.py: "ALL SKIPPED — needs implementation (15 tests)"
+  config/:
+    default.yaml: "Global defaults — AI model, locale, IRPJ/CSLL rates"
+    thresholds.yaml: "Default G/A/B thresholds for cash quality"
+    companies/austa.yaml: "AUSTA account mapping + reclassifications + healthcare threshold overrides"
+  tests/fixtures/:
+    sample_balancete.xml: "Synthetic AUSTA Q1 2025 data in ERP XML format — use for xml_parser tests"
+
+# ==============================================================================
+# IMPLEMENTATION RULES (MUST FOLLOW)
+# ==============================================================================
+
+rules:
+  - "NEVER modify src/models/ — they are the contract"
+  - "NEVER modify tests/conftest.py"
+  - "ALL financial values MUST be Decimal — never float"
+  - "Safe division: check denominator != 0 before dividing, return Decimal('0') if zero"
+  - "Portuguese labels for all user-facing text"
+  - "No side effects in calc functions — pure functions only"
+  - "Each calc function takes the minimum needed input, returns updated PeriodResult"
+  - "The pipeline merges PeriodResult fields by calling each calc in sequence"
+  - "tests must have REAL assertions — no pytest.skip() left when done"
+  - "Final test run must show 0 failures, 0 skips"
+  - "AI is optional — --no-ai must produce complete reports without Claude"
+  - "Do NOT save working files to root folder — use src/, tests/, docs/"
+
+# ==============================================================================
+# HOW TO RESUME
+# ==============================================================================
+
+resume_instructions:
+  step_1: "cd /Users/rodrigo/claude-projects/cashflow-story-pipeline"
+  step_2: "git pull origin main  # get latest committed state"
+  step_3: "/opt/homebrew/bin/python3.11 -m pytest tests/test_brazilian_tax.py -v  # verify M1 still passes"
+  step_4: "Start with Milestone 2 — implement src/calc/income_statement.py first"
+  step_5: |
+    Order of implementation for Milestone 2 (each depends on prior):
+      1. income_statement.py  (standalone, calls brazilian_tax)
+      2. working_capital.py   (standalone)
+      3. balance_sheet.py     (takes PeriodResult, adds BS fields)
+      4. cash_flow.py         (takes PeriodResult with IS + WC + BS)
+      5. ratios.py            (takes full PeriodResult)
+      6. power_of_one.py      (takes full PeriodResult)
+      7. cash_quality.py      (takes full PeriodResult)
+      8. marginal_cashflow.py (takes full PeriodResult)
+      Then implement tests/test_power_of_one.py and tests/test_cash_quality.py
+  step_6: "After M2: implement Milestone 3 (ingest layer)"
+  step_7: "After M3: implement Milestone 4 (AI analyst)"
+  step_8: "After M4: implement Milestone 5 (output generators)"
+  step_9: "After M5: implement Milestone 6 (pipeline + CLI + integration tests)"
+  step_10: "Final: /opt/homebrew/bin/python3.11 -m pytest tests/ -v  # must be 0 failures, 0 skips"
+
+# ==============================================================================
+# GENERATED: 2026-02-23 by claude-sonnet-4-6
+# ==============================================================================

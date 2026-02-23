@@ -1,0 +1,41 @@
+# Cash Quality G/A/B Thresholds (Alan Miltz CashFlow Story defaults)
+# Override per company in config/companies/<name>.yaml
+
+cash_quality:
+  # Chapter 1 - Profitability
+  gross_margin_pct:
+    good: 50
+    average: 45
+    direction: higher_is_better
+    label_pt: "Margem Bruta %"
+
+  overhead_pct:
+    good: 30
+    average: 35
+    direction: lower_is_better
+    label_pt: "Overhead %"
+
+  ebit_margin_pct:
+    good: 20
+    average: 15
+    direction: higher_is_better
+    label_pt: "Margem EBIT %"
+
+  # Chapter 2 - Working Capital
+  ar_days:
+    good: 60
+    average: 70
+    direction: lower_is_better
+    label_pt: "Prazo Médio Recebimento (dias)"
+
+  inventory_days:
+    good: 15
+    average: 30
+    direction: lower_is_better
+    label_pt: "Prazo Médio Estoque (dias)"
+
+  ap_days:
+    good: 30
+    average: 25
+    direction: higher_is_better
+    label_pt: "Prazo Médio Pagamento (dias)"

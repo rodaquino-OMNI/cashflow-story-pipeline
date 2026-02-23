@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Synthetic AUSTA Manufacturing Q1 2025 Balancete XML
+    Realistic ERP export simulating actual Brazilian accounting data
+-->
+<balancete>
+    <empresa>
+        <nome>AUSTA Manufacturing LTDA</nome>
+        <cnpj>12.345.678/0001-90</cnpj>
+        <periodo>01/2025</periodo>
+        <data_inicio>2025-01-01</data_inicio>
+        <data_fim>2025-03-31</data_fim>
+    </empresa>
+    
+    <contas>
+        <!-- 1.1 Current Assets / Ativo Circulante -->
+        
+        <!-- 1.1.01 Cash / Caixa -->
+        <conta>
+            <codigo>1.1.01</codigo>
+            <descricao>Caixa</descricao>
+            <tipo>Ativo</tipo>
+            <saldo_inicial>2900000.00</saldo_inicial>
+            <saldo_final>1200000.00</saldo_final>
+            <movimento>-1700000.00</movimento>
+        </conta>
+        
+        <!-- 1.1.03 Accounts Receivable / Contas a Receber -->
+        <conta>
+            <codigo>1.1.03</codigo>
+            <descricao>Contas a Receber</descricao>
+            <tipo>Ativo</tipo>
+            <saldo_inicial>17200000.00</saldo_inicial>
+            <saldo_final>18500000.00</saldo_final>
+            <movimento>1300000.00</movimento>
+            <subcategorias>
+                <subconta>
+                    <codigo>1.1.03.01</codigo>
+                    <descricao>Duplicatas a Receber (0-30 dias)</descricao>
+                    <saldo>8950000.00</saldo>
+                </subconta>
+                <subconta>
+                    <codigo>1.1.03.02</codigo>
+                    <descricao>Duplicatas a Receber (31-90 dias)</descricao>
+                    <saldo>6200000.00</saldo>
+                </subconta>
+                <subconta>
+                    <codigo>1.1.03.03</codigo>
+                    <descricao>Duplicatas a Receber (90+ dias)</descricao>
+                    <saldo>3350000.00</saldo>
+                </subconta>
+            </subcategorias>
+        </conta>
+        
+        <!-- 1.1.04 Inventory / Estoque -->
+        <conta>
+            <codigo>1.1.04</codigo>
+            <descricao>Estoque</descricao>
+            <tipo>Ativo</tipo>
+            <saldo_inicial>3000000.00</saldo_inicial>
+            <saldo_final>3200000.00</saldo_final>
+            <movimento>200000.00</movimento>
+        </conta>
+        
+        <!-- 1.2 Fixed Assets / Ativo Não Circulante -->
+        
+        <!-- 1.2.03 PP&E / Imobilizado -->
+        <conta>
+            <codigo>1.2.03</codigo>
+            <descricao>Imobilizado</descricao>
+            <tipo>Ativo</tipo>
+            <saldo_inicial>45000000.00</saldo_inicial>
+            <saldo_final>45000000.00</saldo_final>
+            <movimento>0.00</movimento>
+        </conta>
+        
+        <!-- 2.1 Current Liabilities / Passivo Circulante -->
+        
+        <!-- 2.1.01 Accounts Payable / Fornecedores -->
+        <conta>
+            <codigo>2.1.01</codigo>
+            <descricao>Fornecedores</descricao>
+            <tipo>Passivo</tipo>
+            <saldo_inicial>8500000.00</saldo_inicial>
+            <saldo_final>8900000.00</saldo_final>
+            <movimento>400000.00</movimento>
+        </conta>
+        
+        <!-- 2.1.02 Short Term Debt / Empréstimos CP -->
+        <conta>
+            <codigo>2.1.02</codigo>
+            <descricao>Empréstimos CP</descricao>
+            <tipo>Passivo</tipo>
+            <saldo_inicial>11500000.00</saldo_inicial>
+            <saldo_final>12000000.00</saldo_final>
+            <movimento>500000.00</movimento>
+        </conta>
+        
+        <!-- 2.2.01 Long Term Debt / Empréstimos LP -->
+        <conta>
+            <codigo>2.2.01</codigo>
+            <descricao>Empréstimos LP</descricao>
+            <tipo>Passivo</tipo>
+            <saldo_inicial>25000000.00</saldo_inicial>
+            <saldo_final>25000000.00</saldo_final>
+            <movimento>0.00</movimento>
+        </conta>
+        
+        <!-- 2.3 Equity / Patrimônio Líquido -->
+        <conta>
+            <codigo>2.3</codigo>
+            <descricao>Patrimônio Líquido</descricao>
+            <tipo>Passivo</tipo>
+            <saldo_inicial>34700000.00</saldo_inicial>
+            <saldo_final>35000000.00</saldo_final>
+            <movimento>300000.00</movimento>
+        </conta>
+        
+        <!-- 3 Revenue / Receita -->
+        
+        <!-- 3.1 Operating Revenue / Receita Operacional -->
+        <conta>
+            <codigo>3.1</codigo>
+            <descricao>Receita de Vendas</descricao>
+            <tipo>Receita</tipo>
+            <saldo>40100000.00</saldo>
+            <periodo_mes_1>12900000.00</periodo_mes_1>
+            <periodo_mes_2>13200000.00</periodo_mes_2>
+            <periodo_mes_3>14000000.00</periodo_mes_3>
+        </conta>
+        
+        <!-- 3.2 Tax Deductions / Deduções -->
+        <conta>
+            <codigo>3.2</codigo>
+            <descricao>Deduções (ICMS, ISS, PIS, COFINS)</descricao>
+            <tipo>Receita</tipo>
+            <saldo>-2500000.00</saldo>
+        </conta>
+        
+        <!-- 3.3 Financial Income / Receitas Financeiras -->
+        <conta>
+            <codigo>3.3</codigo>
+            <descricao>Receitas Financeiras</descricao>
+            <tipo>Receita</tipo>
+            <saldo>150000.00</saldo>
+        </conta>
+        
+        <!-- 4 Expenses / Despesas -->
+        
+        <!-- 4.1 COGS / Custo dos Produtos Vendidos -->
+        <conta>
+            <codigo>4.1</codigo>
+            <descricao>Custo dos Produtos Vendidos</descricao>
+            <tipo>Despesa</tipo>
+            <saldo>-22400000.00</saldo>
+            <movimento_mes_1>-7100000.00</movimento_mes_1>
+            <movimento_mes_2>-7450000.00</movimento_mes_2>
+            <movimento_mes_3>-7850000.00</movimento_mes_3>
+        </conta>
+        
+        <!-- 4.2 Operating Expenses / Despesas Operacionais -->
+        <conta>
+            <codigo>4.2</codigo>
+            <descricao>Despesas Operacionais</descricao>
+            <tipo>Despesa</tipo>
+            <saldo>-19650000.00</saldo>
+            <subcategorias>
+                <!-- 4.2.01 Personnel and Services (to be reclassified to COGS) -->
+                <subconta>
+                    <codigo>4.2.01</codigo>
+                    <descricao>Pessoal e Serviços (Manufacturing Indirect)</descricao>
+                    <saldo>-6500000.00</saldo>
+                    <reclassificar_a>4.1</reclassificar_a>
+                    <motivo>Manufacturing indirect costs should be in COGS</motivo>
+                </subconta>
+                <!-- 4.2.02 Materials and Services (to be reclassified to COGS) -->
+                <subconta>
+                    <codigo>4.2.02</codigo>
+                    <descricao>Materiais e Serviços (Manufacturing Supplies)</descricao>
+                    <saldo>-1750000.00</saldo>
+                    <reclassificar_a>4.1</reclassificar_a>
+                    <motivo>Manufacturing supplies should be in COGS</motivo>
+                </subconta>
+                <!-- Other operating expenses -->
+                <subconta>
+                    <codigo>4.2.03</codigo>
+                    <descricao>Vendas e Marketing</descricao>
+                    <saldo>-5200000.00</saldo>
+                </subconta>
+                <subconta>
+                    <codigo>4.2.04</codigo>
+                    <descricao>Administrativo</descricao>
+                    <saldo>-4100000.00</saldo>
+                </subconta>
+                <subconta>
+                    <codigo>4.2.05</codigo>
+                    <descricao>Tecnologia e Sistemas</descricao>
+                    <saldo>-2100000.00</saldo>
+                </subconta>
+            </subcategorias>
+        </conta>
+        
+        <!-- 4.3 Financial Expenses / Despesas Financeiras -->
+        <conta>
+            <codigo>4.3</codigo>
+            <descricao>Despesas Financeiras</descricao>
+            <tipo>Despesa</tipo>
+            <saldo>-1200000.00</saldo>
+        </conta>
+    </contas>
+    
+    <resumo>
+        <total_ativo>68900000.00</total_ativo>
+        <total_passivo>45900000.00</total_passivo>
+        <total_patrimonio>23000000.00</total_patrimonio>
+        <resultado_bruto>7600000.00</resultado_bruto>
+        <resultado_operacional>-12050000.00</resultado_operacional>
+        <resultado_liquido>-13100000.00</resultado_liquido>
+    </resumo>
+    
+    <notas>
+        <nota>
+            <titulo>Reclassifications</titulo>
+            <descricao>Accounts 4.2.01 (R$6.5M) and 4.2.02 (R$1.75M) should be reclassified to COGS (4.1) as they represent manufacturing indirect costs and supplies.</descricao>
+        </nota>
+        <nota>
+            <titulo>AR Aging</titulo>
+            <descricao>AR aging shows concentration in 0-30 days (48%) and 31-90 days (33%), with 18% overdue (90+ days). DSO approximately 168 days.</descricao>
+        </nota>
+        <nota>
+            <titulo>Cash Position</titulo>
+            <descricao>Cash deteriorated from R$2.9M to R$1.2M (58% decline) in Q1 due to working capital needs and debt service.</descricao>
+        </nota>
+    </notas>
+</balancete>

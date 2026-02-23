@@ -1,0 +1,29 @@
+# CashFlow Story Pipeline - Default Configuration
+
+pipeline:
+  log_level: INFO
+  output_formats: [xlsx, html, pdf, json]
+  locale: pt-BR
+  currency: BRL
+  decimal_places: 2
+
+ai:
+  provider: claude
+  model: claude-sonnet-4-20250514
+  max_tokens: 2000
+  temperature: 0.3
+  enabled: true
+  fallback_on_error: true  # Pipeline continues without AI if API fails
+
+tax:
+  country: BR
+  irpj_base_rate: 0.15
+  irpj_surtax_rate: 0.10
+  irpj_monthly_threshold: 20000
+  csll_rate: 0.09
+
+defaults:
+  asset_turnover: 2.5
+  depreciation_rate: 0.02
+  capex_rate: 0.05
+  target_debt_to_equity: 0.5
