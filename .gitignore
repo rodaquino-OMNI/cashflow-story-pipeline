@@ -21,9 +21,33 @@ rad.json
 #Test results file
 TestResults.xml
 
+### Python ###
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+### OS ###
+.DS_Store
+Thumbs.db
+
 ### claude-flow ###
 node_modules/
 .swarm/
-.claude-flow/logs/
-.claude-flow/sessions/
+.claude-flow/
+.hive-mind/
+.mcp.json
 agents/
+
+### Claude Code ###
+.claude/memory.db
+.claude/worktrees/
+
+### Environment ###
+.env
+.env.*
+*.secret

@@ -1,0 +1,36 @@
+{
+  "name": "cashflow-story-pipeline",
+  "version": "1.0.0",
+  "description": "Automated financial analysis pipeline that transforms ERP data into board-ready CashFlow Story insights.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "cf": "npx claude-flow@latest",
+    "cf:doctor": "npx claude-flow@latest doctor --verbose",
+    "cf:status": "npx claude-flow@latest neural status",
+    "cf:memory:init": "npx claude-flow@latest memory init --force",
+    "cf:memory:stats": "npx claude-flow@latest memory stats",
+    "cf:pretrain": "npx claude-flow@latest hooks pretrain --model-type moe --epochs 3",
+    "cf:build-agents": "npx claude-flow@latest hooks build-agents --verbose",
+    "cf:hive:init": "npx claude-flow@latest hive-mind init --topology hierarchical --max-agents 15 --consensus byzantine",
+    "cf:daemon:start": "npx claude-flow@latest daemon start",
+    "cf:daemon:stop": "npx claude-flow@latest daemon stop",
+    "cf:swarm": "npx claude-flow@latest hive-mind spawn --claude"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rodaquino-OMNI/cashflow-story-pipeline.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/rodaquino-OMNI/cashflow-story-pipeline/issues"
+  },
+  "homepage": "https://github.com/rodaquino-OMNI/cashflow-story-pipeline#readme"
+}
