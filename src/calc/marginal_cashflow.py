@@ -40,4 +40,27 @@ def calculate_marginal_cash_flow(period_result: PeriodResult) -> Dict[str, Decim
     TODO: Project cash impact per 1% growth
     TODO: Return dictionary with all metrics
     """
-    pass
+    ZERO = Decimal("0")
+    pr = period_result
+
+    def safe_div(num: Decimal, den: Decimal) -> Decimal:
+        return num / den if den != ZERO else ZERO
+
+    # FCF% = free_cash_flow / net_revenue
+    fcf_percent = safe_div(pr.free_cash_flow, pr.net_revenue)
+
+    # WC% = working_capital_investment / net_revenue
+    wc_percent = safe_div(pr.working_capital_investment, pr.net_revenue)
+
+    # MCF% = FCF% - WC%
+    mcf_percent = fcf_percent - wc_percent
+
+    # Cash per 1% growth = MCF% * net_revenue * 0.01
+    cash_per_1pct_growth = mcf_percent * pr.net_revenue * Decimal("0.01")
+
+    return {
+        "fcf_percent": fcf_percent,
+        "wc_percent": wc_percent,
+        "mcf_percent": mcf_percent,
+        "cash_per_1pct_growth": cash_per_1pct_growth,
+    }

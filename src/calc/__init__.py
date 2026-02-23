@@ -2,6 +2,7 @@
 
 from src.calc.income_statement import calculate_income_statement
 from src.calc.working_capital import calculate_working_capital
+from src.calc.balance_sheet import estimate_balance_sheet
 from src.calc.cash_flow import calculate_cash_flow
 from src.calc.ratios import calculate_ratios
 from src.calc.power_of_one import calculate_power_of_one
@@ -12,6 +13,7 @@ from src.calc.brazilian_tax import calculate_brazilian_tax
 __all__ = [
     "calculate_income_statement",
     "calculate_working_capital",
+    "estimate_balance_sheet",
     "calculate_cash_flow",
     "calculate_ratios",
     "calculate_power_of_one",

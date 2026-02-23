@@ -50,4 +50,42 @@ def calculate_working_capital(
     TODO: Return PeriodResult with WC fields populated
     TODO: Handle negative working capital
     """
-    pass
+    ZERO = Decimal("0")
+    days = Decimal(str(days_in_period))
+
+    # Safe division helper
+    def safe_div(num: Decimal, den: Decimal) -> Decimal:
+        return num / den if den != ZERO else ZERO
+
+    net_revenue = mapped.gross_revenue - mapped.returns_deductions
+
+    # DSO = (AR / Net Revenue) * days_in_period
+    dso = safe_div(mapped.accounts_receivable, net_revenue) * days
+
+    # DIO = (Inventory / COGS) * days_in_period
+    dio = safe_div(mapped.inventory, mapped.cogs) * days
+
+    # DPO = (AP / COGS) * days_in_period
+    dpo = safe_div(mapped.accounts_payable, mapped.cogs) * days
+
+    # CCC = DSO + DIO - DPO
+    ccc = dso + dio - dpo
+
+    # Working Capital = AR + Inventory - AP
+    wc = mapped.accounts_receivable + mapped.inventory - mapped.accounts_payable
+
+    # WC Investment = WC (no prior period available, use current WC)
+    wc_investment = wc
+
+    return PeriodResult(
+        period=mapped.period,
+        accounts_receivable=mapped.accounts_receivable,
+        inventory=mapped.inventory,
+        accounts_payable=mapped.accounts_payable,
+        days_sales_outstanding=dso,
+        days_inventory_outstanding=dio,
+        days_payable_outstanding=dpo,
+        cash_conversion_cycle=ccc,
+        working_capital=wc,
+        working_capital_investment=wc_investment,
+    )

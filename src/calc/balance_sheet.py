@@ -6,28 +6,33 @@ from src.models import PeriodResult
 
 def estimate_balance_sheet(period_result: PeriodResult) -> PeriodResult:
     """
-    Estimate balance sheet from available financial data.
-    
-    Calculates:
-    - Total Assets = AR + Inventory + PP&E + Other Assets
-    - Current Assets = AR + Inventory + Cash
-    - Non-Current Assets = PP&E + Intangibles + Other Assets
-    - Total Liabilities = AP + ST Debt + LT Debt
-    - Current Liabilities = AP + ST Debt
-    - Non-Current Liabilities = LT Debt + Other Liabilities
-    - Shareholders' Equity
-    
-    Validation: Assets = Liabilities + Equity
-    
+    Estimate balance sheet derived aggregates from a PeriodResult.
+
+    The incoming PeriodResult already has balance sheet line items populated
+    by calculate_income_statement (which forwards MappedData fields):
+      - ppe_net = ppe_gross - accumulated_depreciation
+      - intangibles_net = intangibles
+      - other_capital_net = other_assets - other_liabilities
+      - total_debt = short_term_debt + long_term_debt
+      - net_debt = total_debt - cash
+      - shareholders_equity (passthrough)
+      - accounts_receivable, inventory, accounts_payable (passthrough)
+
+    This function computes the remaining derived BS aggregate:
+      - other_capital_investment = other_capital_net
+        (Without a prior period, the full balance is the investment proxy.)
+
     Args:
-        period_result: PeriodResult with balance sheet items
-    
+        period_result: PeriodResult with balance sheet items already set.
+
     Returns:
-        PeriodResult: Updated with calculated balance sheet totals
-        
-    TODO: Implement balance sheet calculations
-    TODO: Calculate asset and liability aggregates
-    TODO: Validate balance sheet equation (A = L + E)
-    TODO: Return updated PeriodResult
+        PeriodResult: Updated copy with other_capital_investment computed.
     """
-    pass
+    # Without a prior period, other_capital_investment equals the current
+    # other_capital_net balance (net non-current assets minus non-current
+    # liabilities, excluding PP&E and intangibles).
+    other_capital_investment = period_result.other_capital_net
+
+    return period_result.model_copy(update={
+        "other_capital_investment": other_capital_investment,
+    })

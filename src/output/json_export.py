@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import Optional
 from decimal import Decimal
+from datetime import datetime
 import json
 
 from src.models import AnalysisResult
@@ -33,6 +34,7 @@ class JSONExporter:
         TODO: Validate output path
         """
         self.output_path = Path(output_path)
+        self.output_path.parent.mkdir(parents=True, exist_ok=True)
     
     def export(
         self,
@@ -57,7 +59,11 @@ class JSONExporter:
         TODO: Format with indentation if pretty
         TODO: Save and return file path
         """
-        pass
+        data = analysis_result.model_dump(mode='json')
+        indent = 2 if pretty else None
+        json_str = json.dumps(data, indent=indent, default=self._decimal_encoder)
+        self.output_path.write_text(json_str, encoding='utf-8')
+        return self.output_path
     
     @staticmethod
     def _decimal_encoder(obj):
@@ -74,4 +80,6 @@ class JSONExporter:
         """
         if isinstance(obj, Decimal):
             return float(obj)
+        if isinstance(obj, datetime):
+            return obj.isoformat()
         raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
