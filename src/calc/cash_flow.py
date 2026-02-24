@@ -1,6 +1,7 @@
 """Cash flow statement calculations."""
 
 from decimal import Decimal
+
 from src.models import PeriodResult
 
 
@@ -27,7 +28,7 @@ def calculate_cash_flow(period_result: PeriodResult) -> PeriodResult:
         NCF = OCF + ICF + FCF_fin
 
     5. Free Cash Flow:
-        FCF = OCF - abs(ICF)
+        FCF = OCF + ICF  (ICF is negative for outflows, positive for inflows)
 
     Args:
         period_result: PeriodResult with income statement, WC, and capital metrics
@@ -58,8 +59,8 @@ def calculate_cash_flow(period_result: PeriodResult) -> PeriodResult:
     # 4. Net Cash Flow
     ncf = ocf + icf + fcf_fin
 
-    # 5. Free Cash Flow = OCF - abs(ICF)
-    fcf = ocf - abs(icf)
+    # 5. Free Cash Flow = OCF + ICF
+    fcf = ocf + icf
 
     return period_result.model_copy(update={
         "operating_cash_flow": ocf,

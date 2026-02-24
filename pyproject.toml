@@ -28,6 +28,7 @@ dependencies = [
     "structlog>=24.0",
     "watchdog>=4.0",
     "python-dotenv>=1.0",
+    "defusedxml>=0.7",
 ]
 
 [project.optional-dependencies]

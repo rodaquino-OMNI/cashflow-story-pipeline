@@ -1,20 +1,19 @@
 """Brazilian tax calculations (IRPJ and CSLL)."""
 
 from decimal import Decimal
-from typing import Tuple
 
 
 def calculate_brazilian_tax(
     ebt: Decimal,
     period_months: int = 1
-) -> Tuple[Decimal, Decimal]:
+) -> tuple[Decimal, Decimal]:
     """
     Calculate Brazilian income taxes (IRPJ + CSLL) on EBT.
-    
+
     Tax rates:
     - IRPJ (Imposto de Renda): 15% base + 10% surtax on monthly profit > R$20,000
     - CSLL (Contribuição Social): 9% on EBT
-    
+
     Formula:
         Monthly Profit = EBT / period_months
         if Monthly Profit > R$20,000:
@@ -23,14 +22,14 @@ def calculate_brazilian_tax(
             IRPJ = 15% * EBT
         CSLL = 9% * EBT
         Total Tax = IRPJ + CSLL
-    
+
     Args:
         ebt: Earnings Before Tax (Lucro Antes de Impostos)
         period_months: Number of months in period (1-12, default 1)
-    
+
     Returns:
         Tuple[Decimal, Decimal]: (irpj_tax, csll_tax)
-        
+
     Returns:
         Tuple[Decimal, Decimal]: (irpj_tax, csll_tax)
     """

@@ -1,37 +1,38 @@
 """Main pipeline orchestrator for CashFlow Story analysis."""
 
-import glob as globmod
 import logging
 import time
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Any
 
+from dotenv import load_dotenv
+
+from src.ai.analyst import CashFlowStoryAnalyst
+from src.calc import (
+    calculate_cash_flow,
+    calculate_income_statement,
+    calculate_marginal_cash_flow,
+    calculate_power_of_one,
+    calculate_ratios,
+    calculate_working_capital,
+    classify_cash_quality,
+    estimate_balance_sheet,
+)
+from src.ingest.account_mapper import AccountMapper
+from src.ingest.xml_parser import ERPXMLParser
 from src.models import (
-    MappedData,
+    AccountEntry,
     AnalysisResult,
+    MappedData,
     PeriodResult,
     ThreeBigMeasures,
-    AccountEntry,
 )
-from src.ingest.xml_parser import ERPXMLParser
-from src.ingest.account_mapper import AccountMapper
-from src.calc import (
-    calculate_income_statement,
-    calculate_working_capital,
-    estimate_balance_sheet,
-    calculate_cash_flow,
-    calculate_ratios,
-    calculate_power_of_one,
-    classify_cash_quality,
-    calculate_marginal_cash_flow,
-)
-from src.ai.analyst import CashFlowStoryAnalyst
 from src.output.excel_report import ExcelReportGenerator
 from src.output.html_dashboard import HTMLDashboardGenerator
-from src.output.pdf_report import PDFReportGenerator
 from src.output.json_export import JSONExporter
+from src.output.pdf_report import PDFReportGenerator
 
 
 class CashFlowStoryPipeline:
@@ -53,7 +54,7 @@ class CashFlowStoryPipeline:
         audit_trail: Dictionary tracking all processing steps
     """
 
-    def __init__(self, config_name: str = "default", config_path: Optional[str] = None) -> None:
+    def __init__(self, config_name: str = "default", config_path: str | None = None) -> None:
         """
         Initialize the CashFlow Story pipeline.
 
@@ -64,7 +65,7 @@ class CashFlowStoryPipeline:
         self.config_name = config_name
         self.config_path = config_path
         self.logger = logging.getLogger(__name__)
-        self.audit_trail: Dict[str, Any] = {}
+        self.audit_trail: dict[str, Any] = {}
 
     def _resolve_config_path(self) -> str:
         """Resolve the account-mapping config path.
@@ -123,7 +124,7 @@ class CashFlowStoryPipeline:
         self,
         input_path: str,
         output_path: str,
-        options: Optional[Dict[str, Any]] = None,
+        options: dict[str, Any] | None = None,
     ) -> AnalysisResult:
         """
         Execute the complete CashFlow Story pipeline.
@@ -143,6 +144,7 @@ class CashFlowStoryPipeline:
             FileNotFoundError: If input file/directory not found.
             ValueError: If data validation fails.
         """
+        load_dotenv()
         options = options or {}
         self.audit_trail = {
             "started_at": datetime.utcnow().isoformat(),
@@ -159,7 +161,7 @@ class CashFlowStoryPipeline:
                 t0 = time.monotonic()
                 input_p = Path(input_path)
 
-                all_entries: List[List[AccountEntry]] = []
+                all_entries: list[list[AccountEntry]] = []
 
                 if input_p.is_dir():
                     xml_files = sorted(input_p.glob("*.xml"))
@@ -203,7 +205,7 @@ class CashFlowStoryPipeline:
                 config_path_resolved = self._resolve_config_path()
                 mapper = AccountMapper(config_path_resolved)
 
-                mapped_list: List[MappedData] = []
+                mapped_list: list[MappedData] = []
                 for entry_set in all_entries:
                     period = entry_set[0].period if entry_set else "unknown"
                     mapped = mapper.map_accounts(entry_set, period)
@@ -227,7 +229,7 @@ class CashFlowStoryPipeline:
             self.logger.info("Stage 3: Calculating metrics", extra={"stage": 3})
             try:
                 t0 = time.monotonic()
-                period_results: List[PeriodResult] = []
+                period_results: list[PeriodResult] = []
                 for mapped in mapped_list:
                     pr = self._run_calc_chain(mapped)
                     period_results.append(pr)
@@ -259,12 +261,12 @@ class CashFlowStoryPipeline:
                 cash_quality = classify_cash_quality(latest) if latest else []
 
                 # Marginal Cash Flow (from latest period)
-                marginal_cf: Optional[Dict[str, Decimal]] = None
+                marginal_cf: dict[str, Decimal] | None = None
                 if latest:
                     marginal_cf = calculate_marginal_cash_flow(latest)
 
                 # Three Big Measures (from latest period)
-                three_big: Optional[ThreeBigMeasures] = None
+                three_big: ThreeBigMeasures | None = None
                 if latest:
                     mcf_pct = marginal_cf.get("mcf_percent", Decimal("0")) if marginal_cf else Decimal("0")
                     three_big = ThreeBigMeasures(
@@ -291,7 +293,7 @@ class CashFlowStoryPipeline:
                     )
 
                 # Variances across periods
-                variances: Dict[str, Dict[str, Any]] = {}
+                variances: dict[str, dict[str, Any]] = {}
                 if len(period_results) >= 2:
                     prev = period_results[-2]
                     curr = period_results[-1]
@@ -332,7 +334,7 @@ class CashFlowStoryPipeline:
             # ----------------------------------------------------------
             # Stage 5: Synthesize (AI narrative)
             # ----------------------------------------------------------
-            ai_insights: Optional[str] = None
+            ai_insights: str | None = None
             if not options.get("no_ai"):
                 self.logger.info("Stage 5: Synthesizing AI narrative", extra={"stage": 5})
                 try:
@@ -393,7 +395,7 @@ class CashFlowStoryPipeline:
                 out_dir.mkdir(parents=True, exist_ok=True)
 
                 formats = options.get("format", ["excel", "html", "pdf", "json"])
-                output_files: Dict[str, str] = {}
+                output_files: dict[str, str] = {}
 
                 if "excel" in formats:
                     excel_path = out_dir / "cashflow_story.xlsx"

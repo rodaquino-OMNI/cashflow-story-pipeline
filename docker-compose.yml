@@ -1,0 +1,10 @@
+services:
+  pipeline:
+    build: .
+    volumes:
+      - ./input:/app/input
+      - ./output:/app/output
+      - ./.env:/app/.env:ro
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    command: run --input /app/input --output /app/output --config config/companies/austa.yaml

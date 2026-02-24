@@ -1,15 +1,15 @@
 """Financial data models."""
-from src.models.financial_data import (
-    AccountEntry,
-    MappedData,
-    PeriodResult,
-    AnalysisResult,
-)
 from src.models.cashflow_story import (
-    PowerOfOneLever,
     CashQualityMetric,
     FourChaptersSummary,
+    PowerOfOneLever,
     ThreeBigMeasures,
+)
+from src.models.financial_data import (
+    AccountEntry,
+    AnalysisResult,
+    MappedData,
+    PeriodResult,
 )
 
 __all__ = [

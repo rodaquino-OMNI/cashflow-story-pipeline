@@ -1,13 +1,12 @@
 """AI-powered CashFlow Story analyst for narrative generation."""
 
-import os
 import logging
-import json
-from typing import Optional, Dict, Any, List
+import os
 from decimal import Decimal
+from typing import Any
 
-from src.models import AnalysisResult
 from src.ai.prompts import PROMPTS, SYSTEM_PROMPT
+from src.models import AnalysisResult
 
 
 def _to_float(value: Any) -> Any:
@@ -43,7 +42,7 @@ class CashFlowStoryAnalyst:
     def __init__(
         self,
         model: str = "claude-sonnet-4-6",
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         temperature: float = 0.3,
     ) -> None:
         """
@@ -59,7 +58,7 @@ class CashFlowStoryAnalyst:
         self.temperature = temperature
         self.logger = logging.getLogger(__name__)
 
-    def _build_context(self, analysis_result: AnalysisResult) -> Dict[str, Any]:
+    def _build_context(self, analysis_result: AnalysisResult) -> dict[str, Any]:
         """
         Build comprehensive analysis context for prompt.
 
@@ -76,7 +75,7 @@ class CashFlowStoryAnalyst:
         Returns:
             Dict[str, Any]: Structured context for prompt building
         """
-        context: Dict[str, Any] = {
+        context: dict[str, Any] = {
             "company": analysis_result.company,
             "periods_count": len(analysis_result.periods),
         }
@@ -188,7 +187,7 @@ class CashFlowStoryAnalyst:
 
     def _build_prompt(
         self,
-        context: Dict[str, Any],
+        context: dict[str, Any],
         section: str = "cashflow_story_narrative",
     ) -> str:
         """

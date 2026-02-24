@@ -1,10 +1,9 @@
 """Formatters for financial output."""
 
 from decimal import Decimal
-from typing import Union
 
 
-def format_brl(value: Union[Decimal, float, int]) -> str:
+def format_brl(value: Decimal | float | int) -> str:
     """
     Format value as Brazilian currency (R$).
 
@@ -26,7 +25,7 @@ def format_brl(value: Union[Decimal, float, int]) -> str:
     return f"R$ {formatted}"
 
 
-def format_percentage(value: Union[Decimal, float, int], decimals: int = 2) -> str:
+def format_percentage(value: Decimal | float | int, decimals: int = 2) -> str:
     """
     Format value as percentage with proper decimal places.
 
@@ -36,10 +35,7 @@ def format_percentage(value: Union[Decimal, float, int], decimals: int = 2) -> s
         value = Decimal(str(value))
 
     # If absolute value <= 1, treat as 0-1 range (0.1234 → 12,34%)
-    if abs(value) <= Decimal("1"):
-        pct = value * Decimal("100")
-    else:
-        pct = value
+    pct = value * Decimal("100") if abs(value) <= Decimal("1") else value
 
     formatted = f"{pct:.{decimals}f}"
     # Convert decimal point to comma for pt-BR
@@ -47,7 +43,7 @@ def format_percentage(value: Union[Decimal, float, int], decimals: int = 2) -> s
     return f"{formatted}%"
 
 
-def format_days(value: Union[Decimal, float, int]) -> str:
+def format_days(value: Decimal | float | int) -> str:
     """
     Format value as days with descriptor.
 
@@ -68,8 +64,8 @@ def format_days(value: Union[Decimal, float, int]) -> str:
 
 
 def movement_indicator(
-    current: Union[Decimal, float, int],
-    prior: Union[Decimal, float, int],
+    current: Decimal | float | int,
+    prior: Decimal | float | int,
     show_value: bool = False
 ) -> str:
     """

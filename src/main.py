@@ -1,14 +1,14 @@
 """CLI entry point for CashFlow Story pipeline."""
 
+import glob
+import logging
 import sys
 import time
-import glob
+from pathlib import Path
 
 import click
 import yaml
-import logging
-from pathlib import Path
-from typing import Optional
+from dotenv import load_dotenv
 
 from src.pipeline import CashFlowStoryPipeline
 from src.utils.logger import setup_logging
@@ -20,10 +20,11 @@ from src.utils.logger import setup_logging
 def cli(ctx: click.Context, verbose: bool) -> None:
     """
     CashFlow Story Pipeline - ERP XML to board-ready insights.
-    
+
     Transforms ERP financial data into executive-ready cash flow stories
     with Power of One analysis, cash quality assessment, and AI insights.
     """
+    load_dotenv()
     ctx.ensure_object(dict)
     ctx.obj["verbose"] = verbose
     setup_logging(level=logging.DEBUG if verbose else logging.INFO)

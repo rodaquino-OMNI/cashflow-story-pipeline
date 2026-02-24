@@ -1,8 +1,8 @@
 """HTML dashboard generation with inline CSS and Chart.js."""
 
-from pathlib import Path
-from typing import Optional, Dict, Any, List
 from decimal import Decimal
+from pathlib import Path
+from typing import Any
 
 from src.models import AnalysisResult
 
@@ -30,7 +30,7 @@ class HTMLDashboardGenerator:
     def __init__(
         self,
         output_path: str,
-        template_dir: Optional[str] = None
+        template_dir: str | None = None
     ) -> None:
         """
         Initialize HTML dashboard generator.
@@ -69,7 +69,7 @@ class HTMLDashboardGenerator:
     # Context preparation
     # ------------------------------------------------------------------
 
-    def _prepare_context(self, analysis_result: AnalysisResult) -> Dict[str, Any]:
+    def _prepare_context(self, analysis_result: AnalysisResult) -> dict[str, Any]:
         """
         Prepare context dictionary for rendering.
 
@@ -91,7 +91,7 @@ class HTMLDashboardGenerator:
             return float(val)
 
         # KPI data from latest period
-        kpis: Dict[str, float] = {}
+        kpis: dict[str, float] = {}
         if latest:
             kpis = {
                 "net_revenue": _f(latest.net_revenue),
@@ -124,14 +124,14 @@ class HTMLDashboardGenerator:
             }
 
         # Revenue trend data (all periods)
-        period_labels: List[str] = [p.period for p in periods]
-        revenue_data: List[float] = [_f(p.net_revenue) for p in periods]
-        ebitda_data: List[float] = [_f(p.ebitda) for p in periods]
-        net_income_data: List[float] = [_f(p.net_income) for p in periods]
+        period_labels: list[str] = [p.period for p in periods]
+        revenue_data: list[float] = [_f(p.net_revenue) for p in periods]
+        ebitda_data: list[float] = [_f(p.ebitda) for p in periods]
+        net_income_data: list[float] = [_f(p.net_income) for p in periods]
 
         # Cash flow data for latest period waterfall
         cf_labels = ["FCO", "FCI", "FCF", "Fluxo Líquido"]
-        cf_data: List[float] = []
+        cf_data: list[float] = []
         if latest:
             cf_data = [
                 _f(latest.operating_cash_flow),
@@ -143,9 +143,9 @@ class HTMLDashboardGenerator:
             cf_data = [0.0, 0.0, 0.0, 0.0]
 
         # Power of One data
-        po1_labels: List[str] = []
-        po1_cash_data: List[float] = []
-        po1_profit_data: List[float] = []
+        po1_labels: list[str] = []
+        po1_cash_data: list[float] = []
+        po1_profit_data: list[float] = []
         for lever in analysis_result.power_of_one:
             po1_labels.append(lever.label_pt)
             po1_cash_data.append(_f(lever.cash_impact))
@@ -161,7 +161,7 @@ class HTMLDashboardGenerator:
             })
 
         # Three Big Measures
-        tbm: Dict[str, Any] = {}
+        tbm: dict[str, Any] = {}
         if analysis_result.three_big_measures:
             tbm_obj = analysis_result.three_big_measures
             tbm = {
@@ -674,7 +674,7 @@ class HTMLDashboardGenerator:
     # Full HTML builder
     # ------------------------------------------------------------------
 
-    def _build_html(self, ctx: Dict[str, Any], analysis_result: AnalysisResult) -> str:
+    def _build_html(self, ctx: dict[str, Any], analysis_result: AnalysisResult) -> str:
         """Build the complete self-contained HTML document."""
         kpis = ctx["kpis"]
         tbm = ctx["tbm"]
@@ -1121,14 +1121,14 @@ class HTMLDashboardGenerator:
 # Module-level helpers (private)
 # ------------------------------------------------------------------
 
-def _to_js_str_array(items: List[str]) -> str:
+def _to_js_str_array(items: list[str]) -> str:
     """Convert a Python list of strings to a JS array literal."""
     escaped = [s.replace("\\", "\\\\").replace("'", "\\'") for s in items]
     inner = ", ".join(f"'{e}'" for e in escaped)
     return f"[{inner}]"
 
 
-def _to_js_num_array(items: List[float]) -> str:
+def _to_js_num_array(items: list[float]) -> str:
     """Convert a Python list of floats to a JS array literal."""
     inner = ", ".join(str(round(v, 2)) for v in items)
     return f"[{inner}]"
@@ -1141,7 +1141,7 @@ def _fmt_brl_html(value: float) -> str:
     integer_part = int(abs_val)
     decimal_part = round((abs_val - integer_part) * 100)
     s = str(integer_part)
-    groups: List[str] = []
+    groups: list[str] = []
     while len(s) > 3:
         groups.insert(0, s[-3:])
         s = s[:-3]

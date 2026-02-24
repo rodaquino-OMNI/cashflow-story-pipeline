@@ -1,15 +1,16 @@
 """Financial data models using Pydantic v2 with Decimal fields for precision."""
 
-from decimal import Decimal
 from datetime import datetime
-from typing import Optional, Dict, List, Any
-from pydantic import BaseModel, Field
+from decimal import Decimal
+from typing import Any, Optional
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class AccountEntry(BaseModel):
     """
     Represents a single account entry from ERP balancete or fluxo de caixa.
-    
+
     Attributes:
         code: Account code (e.g., "1.1.1" or "4100")
         description: Account description in Portuguese
@@ -27,21 +28,18 @@ class AccountEntry(BaseModel):
     closing_balance: Decimal = Field(default=Decimal("0"), description="Closing balance")
     period: str = Field(..., description="Period identifier")
 
-    class Config:
-        json_encoders = {Decimal: lambda v: float(v)}
-
 
 class MappedData(BaseModel):
     """
     Complete mapped financial data from Chapter 1-4 ERP inputs.
     All values use Decimal for precision.
-    
+
     Attributes:
         company: Company CNPJ or identifier
         period: Period (e.g., "202401")
         period_type: "month", "quarter", or "year"
         days_in_period: Number of days in period
-        
+
         # Chapter 1: Profitability
         gross_revenue: Receita bruta
         returns_deductions: Devoluções e deduções
@@ -56,25 +54,25 @@ class MappedData(BaseModel):
         financial_income: Receita financeira
         other_income_expenses: Outras receitas/despesas
         ebt: EBT (Lucro antes de impostos)
-        
+
         # Chapter 2: Working Capital Components
         accounts_receivable: Contas a receber
         inventory: Estoques
         accounts_payable: Contas a pagar
-        
+
         # Chapter 3: Other Capital (OC)
         ppe_gross: Imobilizado bruto (PP&E)
         accumulated_depreciation: Depreciação acumulada
         intangibles: Intangível
         other_assets: Outros ativos não circulantes
         other_liabilities: Outros passivos não circulantes
-        
+
         # Chapter 4: Funding
         cash: Caixa e equivalentes
         short_term_debt: Dívida de curto prazo
         long_term_debt: Dívida de longo prazo
         shareholders_equity: Patrimônio líquido
-        
+
         # Additional metadata
         metadata: Optional dictionary with source info, flags, etc.
     """
@@ -82,7 +80,7 @@ class MappedData(BaseModel):
     period: str = Field(..., description="Period identifier (e.g., '202401')")
     period_type: str = Field(default="month", description="Period type: 'month', 'quarter', or 'year'")
     days_in_period: int = Field(default=30, description="Number of days in period")
-    
+
     # Chapter 1: Profitability
     gross_revenue: Decimal = Field(default=Decimal("0"), description="Receita bruta")
     returns_deductions: Decimal = Field(default=Decimal("0"), description="Devoluções e deduções")
@@ -97,67 +95,77 @@ class MappedData(BaseModel):
     financial_income: Decimal = Field(default=Decimal("0"), description="Receita financeira")
     other_income_expenses: Decimal = Field(default=Decimal("0"), description="Outras receitas/despesas")
     ebt: Decimal = Field(default=Decimal("0"), description="EBT - Lucro antes de impostos")
-    
+
     # Chapter 2: Working Capital Components
     accounts_receivable: Decimal = Field(default=Decimal("0"), description="Contas a receber")
     inventory: Decimal = Field(default=Decimal("0"), description="Estoques")
     accounts_payable: Decimal = Field(default=Decimal("0"), description="Contas a pagar")
-    
+
     # Chapter 3: Other Capital (OC)
     ppe_gross: Decimal = Field(default=Decimal("0"), description="Imobilizado bruto")
     accumulated_depreciation: Decimal = Field(default=Decimal("0"), description="Depreciação acumulada")
     intangibles: Decimal = Field(default=Decimal("0"), description="Intangível")
     other_assets: Decimal = Field(default=Decimal("0"), description="Outros ativos")
     other_liabilities: Decimal = Field(default=Decimal("0"), description="Outros passivos")
-    
+
     # Chapter 4: Funding
     cash: Decimal = Field(default=Decimal("0"), description="Caixa e equivalentes")
     short_term_debt: Decimal = Field(default=Decimal("0"), description="Dívida de curto prazo")
     long_term_debt: Decimal = Field(default=Decimal("0"), description="Dívida de longo prazo")
     shareholders_equity: Decimal = Field(default=Decimal("0"), description="Patrimônio líquido")
-    
-    # Metadata
-    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Additional metadata")
 
-    class Config:
-        json_encoders = {Decimal: lambda v: float(v)}
+    # Metadata
+    metadata: dict[str, Any] | None = Field(default_factory=dict, description="Additional metadata")
+
+    @field_validator('accounts_receivable', 'inventory', 'accounts_payable', 'cash')
+    @classmethod
+    def non_negative_balance(cls, v: Decimal, info) -> Decimal:
+        """Validate that balance sheet items are non-negative."""
+        if v < Decimal("0"):
+            import warnings
+            warnings.warn(
+                f"{info.field_name} is negative ({v}). This may indicate a data quality issue.",
+                UserWarning,
+                stacklevel=2,
+            )
+        return v
 
 
 class PeriodResult(BaseModel):
     """
     Complete calculated results for a single period.
     Contains all income statement, working capital, cash flow, and ratio calculations.
-    
+
     Attributes:
         period: Period identifier
-        
+
         # Income Statement (Chapter 1)
         gross_revenue, returns_deductions, net_revenue, cogs, gross_profit,
         operating_expenses, ebitda, depreciation_amortization, ebit,
         financial_expenses, financial_income, other_income_expenses, ebt,
         irpj_tax, csll_tax, net_income
-        
+
         # Working Capital (Chapter 2)
         accounts_receivable, inventory, accounts_payable,
         days_sales_outstanding (DSO), days_inventory_outstanding (DIO),
         days_payable_outstanding (DPO), cash_conversion_cycle (CCC),
         working_capital_investment
-        
+
         # Other Capital (Chapter 3)
         ppe_net, intangibles_net, other_capital_investment
-        
+
         # Funding (Chapter 4)
         total_debt, debt_to_equity, net_debt, shareholders_equity
-        
+
         # Cash Flow Statement
         operating_cash_flow, investing_cash_flow, financing_cash_flow,
         net_cash_flow, free_cash_flow
-        
+
         # Financial Ratios
         current_ratio, quick_ratio, debt_to_equity_ratio, roe, roa, roce
     """
     period: str = Field(..., description="Period identifier")
-    
+
     # Chapter 1: Income Statement
     gross_revenue: Decimal = Field(default=Decimal("0"))
     returns_deductions: Decimal = Field(default=Decimal("0"))
@@ -179,7 +187,7 @@ class PeriodResult(BaseModel):
     csll_tax: Decimal = Field(default=Decimal("0"))
     net_income: Decimal = Field(default=Decimal("0"))
     net_margin_pct: Decimal = Field(default=Decimal("0"))
-    
+
     # Chapter 2: Working Capital
     accounts_receivable: Decimal = Field(default=Decimal("0"))
     inventory: Decimal = Field(default=Decimal("0"))
@@ -190,25 +198,25 @@ class PeriodResult(BaseModel):
     cash_conversion_cycle: Decimal = Field(default=Decimal("0"), alias="ccc")
     working_capital: Decimal = Field(default=Decimal("0"))
     working_capital_investment: Decimal = Field(default=Decimal("0"))
-    
+
     # Chapter 3: Other Capital
     ppe_net: Decimal = Field(default=Decimal("0"))
     intangibles_net: Decimal = Field(default=Decimal("0"))
     other_capital_net: Decimal = Field(default=Decimal("0"))
     other_capital_investment: Decimal = Field(default=Decimal("0"))
-    
+
     # Chapter 4: Funding
     total_debt: Decimal = Field(default=Decimal("0"))
     net_debt: Decimal = Field(default=Decimal("0"))
     shareholders_equity: Decimal = Field(default=Decimal("0"))
-    
+
     # Cash Flow Statement
     operating_cash_flow: Decimal = Field(default=Decimal("0"))
     investing_cash_flow: Decimal = Field(default=Decimal("0"))
     financing_cash_flow: Decimal = Field(default=Decimal("0"))
     net_cash_flow: Decimal = Field(default=Decimal("0"))
     free_cash_flow: Decimal = Field(default=Decimal("0"))
-    
+
     # Financial Ratios
     current_ratio: Decimal = Field(default=Decimal("0"))
     quick_ratio: Decimal = Field(default=Decimal("0"))
@@ -217,15 +225,13 @@ class PeriodResult(BaseModel):
     roa_pct: Decimal = Field(default=Decimal("0"))
     roce_pct: Decimal = Field(default=Decimal("0"))
 
-    class Config:
-        json_encoders = {Decimal: lambda v: float(v)}
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class AnalysisResult(BaseModel):
     """
     Complete CashFlow Story analysis result combining all periods and insights.
-    
+
     Attributes:
         company: Company identifier
         generated_at: Timestamp of analysis generation
@@ -241,21 +247,18 @@ class AnalysisResult(BaseModel):
     """
     company: str = Field(..., description="Company identifier")
     generated_at: datetime = Field(default_factory=datetime.utcnow, description="Timestamp of generation")
-    periods: List[PeriodResult] = Field(default_factory=list, description="Results for each period")
-    variances: Dict[str, Dict[str, Any]] = Field(default_factory=dict, description="Variance analysis")
-    power_of_one: List["PowerOfOneLever"] = Field(default_factory=list, description="Power of One levers")
-    cash_quality: List["CashQualityMetric"] = Field(default_factory=list, description="Cash quality metrics")
-    marginal_cash_flow: Optional[Dict[str, Decimal]] = Field(default=None, description="Marginal cash flow")
-    growth_cash_impact: Optional[Dict[str, Decimal]] = Field(default=None, description="Growth impact")
+    periods: list[PeriodResult] = Field(default_factory=list, description="Results for each period")
+    variances: dict[str, dict[str, Any]] = Field(default_factory=dict, description="Variance analysis")
+    power_of_one: list["PowerOfOneLever"] = Field(default_factory=list, description="Power of One levers")
+    cash_quality: list["CashQualityMetric"] = Field(default_factory=list, description="Cash quality metrics")
+    marginal_cash_flow: dict[str, Decimal] | None = Field(default=None, description="Marginal cash flow")
+    growth_cash_impact: dict[str, Decimal] | None = Field(default=None, description="Growth impact")
     three_big_measures: Optional["ThreeBigMeasures"] = Field(default=None, description="Top 3 measures")
-    ai_insights: Optional[str] = Field(default=None, description="AI-generated narrative insights")
-    audit_trail: Dict[str, Any] = Field(default_factory=dict, description="Processing audit trail")
-
-    class Config:
-        json_encoders = {Decimal: lambda v: float(v)}
+    ai_insights: str | None = Field(default=None, description="AI-generated narrative insights")
+    audit_trail: dict[str, Any] = Field(default_factory=dict, description="Processing audit trail")
 
 
 # Forward references for circular imports
-from src.models.cashflow_story import PowerOfOneLever, CashQualityMetric, ThreeBigMeasures
+from src.models.cashflow_story import CashQualityMetric, PowerOfOneLever, ThreeBigMeasures
 
 AnalysisResult.model_rebuild()

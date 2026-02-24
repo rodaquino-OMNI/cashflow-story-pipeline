@@ -16,7 +16,7 @@ Create a 3-4 paragraph executive summary that:
 
 Format: Professional, concise, board-ready Portuguese.
 """,
-    
+
     "variance_analysis": """
 Analyze the period-over-period variances and create a Portuguese narrative.
 
@@ -31,7 +31,7 @@ Create 2-3 paragraphs explaining:
 
 Format: Analytical, Portuguese, focus on "why" not just "what".
 """,
-    
+
     "risk_assessment": """
 Assess risks and concerns based on the financial data.
 
@@ -46,7 +46,7 @@ Create a Portuguese risk summary covering:
 
 Format: Direct, Portuguese, highlight "Red", "Yellow", "Green" status for each risk.
 """,
-    
+
     "cash_flow_analysis": """
 Provide detailed analysis of the 4 Chapters of CashFlow.
 
@@ -62,7 +62,7 @@ Create 4-5 paragraphs analyzing:
 
 Format: Comprehensive, Portuguese, board-ready.
 """,
-    
+
     "strategic_recommendations": """
 Develop strategic recommendations based on Power of One analysis.
 
@@ -80,7 +80,7 @@ Create 5-7 specific, actionable recommendations in Portuguese:
 
 Format: Actionable, quantified where possible, Portuguese, ranked by impact.
 """,
-    
+
     "cashflow_story_narrative": """
 Create the complete CashFlow Story narrative for board presentation.
 

@@ -1,54 +1,54 @@
 """Working capital calculations (Chapter 2: Working Capital)."""
 
 from decimal import Decimal
+
 from src.models import MappedData, PeriodResult
 
 
 def calculate_working_capital(
     mapped: MappedData,
-    days_in_period: int = 30
+    days_in_period: int = 30,
+    prior_working_capital: Decimal | None = None,
 ) -> PeriodResult:
     """
     Calculate working capital metrics (Chapter 2).
-    
+
     Formulas:
     - DSO (Days Sales Outstanding):
         DSO = (Accounts Receivable / Net Revenue) × Days in Period
         Measures how many days to collect payment
-    
+
     - DIO (Days Inventory Outstanding):
         DIO = (Inventory / COGS) × Days in Period
         Measures how many days inventory is held
-    
+
     - DPO (Days Payable Outstanding):
         DPO = (Accounts Payable / COGS) × Days in Period
         Measures how many days before paying suppliers
-    
+
     - CCC (Cash Conversion Cycle):
         CCC = DSO + DIO - DPO
         Measures working capital financing cycle
-    
+
     - Working Capital:
         WC = AR + Inventory - AP
         Absolute working capital investment
-    
+
     - WC Investment:
         Δ WC = Change in WC from prior period
-        
+        Defaults to 0 if prior period WC not provided
+
     Args:
         mapped: MappedData with AR, Inventory, AP, Revenue, COGS
         days_in_period: Number of days in period (default 30)
-    
+        prior_working_capital: Working capital from prior period (optional).
+            If None, WC Investment defaults to 0.
+
     Returns:
         PeriodResult: Working capital metrics (WC chapter only)
-        
+
     Raises:
         ValueError: If COGS or Revenue is zero (division by zero)
-        
-    TODO: Implement all formulas with safe division (handle zero)
-    TODO: Calculate all 6 metrics
-    TODO: Return PeriodResult with WC fields populated
-    TODO: Handle negative working capital
     """
     ZERO = Decimal("0")
     days = Decimal(str(days_in_period))
@@ -74,8 +74,8 @@ def calculate_working_capital(
     # Working Capital = AR + Inventory - AP
     wc = mapped.accounts_receivable + mapped.inventory - mapped.accounts_payable
 
-    # WC Investment = WC (no prior period available, use current WC)
-    wc_investment = wc
+    # WC Investment = Change in WC from prior period (or 0 if no prior available)
+    wc_investment = wc - prior_working_capital if prior_working_capital is not None else ZERO
 
     return PeriodResult(
         period=mapped.period,

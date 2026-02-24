@@ -1,10 +1,11 @@
 """Parser for ERP XML files (balancete and fluxo de caixa formats)."""
 
 import re
+import xml.etree.ElementTree as ET
 from decimal import Decimal
 from pathlib import Path
-from typing import List, Optional
-import xml.etree.ElementTree as ET
+
+import defusedxml.ElementTree as SafeET
 
 from src.models import AccountEntry
 
@@ -23,12 +24,17 @@ class ERPXMLParser:
         format: Detected XML format type
     """
 
+    MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
+
     def __init__(self, file_path: str) -> None:
         self.file_path = Path(file_path)
         if not self.file_path.exists():
             raise FileNotFoundError(f"XML file not found: {self.file_path}")
+        file_size = self.file_path.stat().st_size
+        if file_size > self.MAX_FILE_SIZE:
+            raise ValueError(f"XML file too large ({file_size} bytes, max {self.MAX_FILE_SIZE})")
         self.encoding: str = "UTF-8"
-        self.format: Optional[str] = None
+        self.format: str | None = None
 
     # ------------------------------------------------------------------
     # Encoding / format detection
@@ -48,7 +54,7 @@ class ERPXMLParser:
     def detect_format(self) -> str:
         """Auto-detect XML format by inspecting the root element tag."""
         self.detect_encoding()
-        tree = ET.parse(str(self.file_path))
+        tree = SafeET.parse(str(self.file_path))
         root = tree.getroot()
         tag = root.tag.lower()
         if "balancete" in tag:
@@ -64,7 +70,7 @@ class ERPXMLParser:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _parse_decimal(text: Optional[str]) -> Decimal:
+    def _parse_decimal(text: str | None) -> Decimal:
         """Convert a Brazilian-format number string to Decimal.
 
         Handles '1.234,56' → Decimal('1234.56') and plain '1234.56'.
@@ -82,19 +88,19 @@ class ERPXMLParser:
     # Balancete parser
     # ------------------------------------------------------------------
 
-    def parse_balancete(self) -> List[AccountEntry]:
+    def parse_balancete(self) -> list[AccountEntry]:
         """Parse balancete de verificação XML.
 
         Returns both top-level <conta> entries and nested <subconta> entries
         so downstream mappers can apply reclassifications by sub-account code.
         """
         self.detect_encoding()
-        tree = ET.parse(str(self.file_path))
+        tree = SafeET.parse(str(self.file_path))
         root = tree.getroot()
 
         period = self._extract_period(root)
 
-        entries: List[AccountEntry] = []
+        entries: list[AccountEntry] = []
         contas = root.find("contas")
         if contas is None:
             return entries
@@ -118,15 +124,15 @@ class ERPXMLParser:
     # Fluxo de caixa parser
     # ------------------------------------------------------------------
 
-    def parse_fluxo_caixa(self) -> List[AccountEntry]:
+    def parse_fluxo_caixa(self) -> list[AccountEntry]:
         """Parse fluxo de caixa XML (<atividade> elements)."""
         self.detect_encoding()
-        tree = ET.parse(str(self.file_path))
+        tree = SafeET.parse(str(self.file_path))
         root = tree.getroot()
 
         period = self._extract_period(root)
 
-        entries: List[AccountEntry] = []
+        entries: list[AccountEntry] = []
         for atividade in root.iter("atividade"):
             codigo = (atividade.findtext("codigo") or "").strip()
             descricao = (atividade.findtext("descricao") or "").strip()
@@ -160,7 +166,7 @@ class ERPXMLParser:
                 return el.text.strip()
         return ""
 
-    def _conta_to_entry(self, conta: ET.Element, period: str) -> Optional[AccountEntry]:
+    def _conta_to_entry(self, conta: ET.Element, period: str) -> AccountEntry | None:
         codigo = (conta.findtext("codigo") or "").strip()
         descricao = (conta.findtext("descricao") or "").strip()
 
@@ -185,7 +191,7 @@ class ERPXMLParser:
             period=period,
         )
 
-    def _subconta_to_entry(self, sub: ET.Element, period: str) -> Optional[AccountEntry]:
+    def _subconta_to_entry(self, sub: ET.Element, period: str) -> AccountEntry | None:
         codigo = (sub.findtext("codigo") or "").strip()
         descricao = (sub.findtext("descricao") or "").strip()
         saldo = self._parse_decimal(sub.findtext("saldo"))

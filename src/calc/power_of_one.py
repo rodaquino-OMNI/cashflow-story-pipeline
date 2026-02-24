@@ -1,11 +1,11 @@
 """Power of One analysis - sensitivity of 1% changes on profit and cash."""
 
 from decimal import Decimal
-from typing import List
+
 from src.models import PeriodResult, PowerOfOneLever
 
 
-def calculate_power_of_one(period_result: PeriodResult) -> List[PowerOfOneLever]:
+def calculate_power_of_one(period_result: PeriodResult) -> list[PowerOfOneLever]:
     """
     Calculate Power of One analysis: impact of a 1-unit change on each lever.
 
@@ -27,7 +27,7 @@ def calculate_power_of_one(period_result: PeriodResult) -> List[PowerOfOneLever]
     DEPRECIATION_FACTOR = Decimal("0.10")
 
     pr = period_result
-    levers: List[PowerOfOneLever] = []
+    levers: list[PowerOfOneLever] = []
 
     # --- Chapter 1: Profitability levers ---
 
@@ -143,7 +143,7 @@ def calculate_power_of_one(period_result: PeriodResult) -> List[PowerOfOneLever]
     # --- Chapter 3: Other Capital lever ---
 
     # 7. CAPEX: 1% reduction
-    capex = abs(pr.investing_cash_flow)
+    capex = abs(pr.other_capital_investment)
     capex_change = capex * ONE_PCT
     levers.append(
         PowerOfOneLever(

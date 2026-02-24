@@ -1,6 +1,7 @@
 """Financial ratio calculations for performance analysis."""
 
 from decimal import Decimal
+
 from src.models import PeriodResult
 
 
@@ -63,11 +64,12 @@ def calculate_ratios(period_result: PeriodResult) -> PeriodResult:
     )
     roa_pct = safe_div(pr.net_income, total_assets) * Decimal("100")
 
-    # ROCE: EBIT * (1 - tax_rate) / (equity + debt) * 100
-    tax_rate = Decimal("0.34")
+    # ROCE: EBIT * (1 - effective_tax_rate) / (equity + debt) * 100
+    total_tax = pr.irpj_tax + pr.csll_tax
+    effective_tax_rate = safe_div(total_tax, pr.ebt) if pr.ebt > ZERO else Decimal("0.34")
     capital_employed = pr.shareholders_equity + pr.total_debt
     roce_pct = (
-        safe_div(pr.ebit * (Decimal("1") - tax_rate), capital_employed)
+        safe_div(pr.ebit * (Decimal("1") - effective_tax_rate), capital_employed)
         * Decimal("100")
     )
 

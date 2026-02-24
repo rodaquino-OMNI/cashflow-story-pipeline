@@ -1,14 +1,13 @@
 """Excel report generation with multiple sheets."""
 
 from pathlib import Path
-from typing import Optional
 
 from src.models import AnalysisResult
 
 try:
     import openpyxl
     from openpyxl import Workbook
-    from openpyxl.styles import Font, PatternFill, Alignment, numbers
+    from openpyxl.styles import Alignment, Font, PatternFill, numbers
     from openpyxl.utils import get_column_letter
     _OPENPYXL_AVAILABLE = True
 except ImportError:
@@ -57,7 +56,7 @@ class ExcelReportGenerator:
         """
         self.output_path = Path(output_path)
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
-        self._wb: Optional[object] = None
+        self._wb: object | None = None
 
     def generate(self, analysis_result: AnalysisResult) -> Path:
         """

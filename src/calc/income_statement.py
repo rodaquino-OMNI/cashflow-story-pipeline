@@ -1,8 +1,9 @@
 """Income statement calculations (Chapter 1: Profitability)."""
 
 from decimal import Decimal
-from src.models import MappedData, PeriodResult
+
 from src.calc.brazilian_tax import calculate_brazilian_tax
+from src.models import MappedData, PeriodResult
 
 
 def calculate_income_statement(mapped: MappedData) -> PeriodResult:
@@ -39,6 +40,14 @@ def calculate_income_statement(mapped: MappedData) -> PeriodResult:
 
     # DRE Waterfall
     net_revenue = mapped.gross_revenue - mapped.returns_deductions
+    if net_revenue < ZERO:
+        import warnings
+        warnings.warn(
+            f"Net revenue is negative ({net_revenue}). "
+            "Returns/deductions exceed gross revenue.",
+            UserWarning,
+            stacklevel=2,
+        )
     gross_profit = net_revenue - mapped.cogs
     gross_margin_pct = (gross_profit / net_revenue * 100) if net_revenue != ZERO else ZERO
     ebitda = gross_profit - mapped.operating_expenses

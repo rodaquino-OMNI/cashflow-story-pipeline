@@ -1,11 +1,12 @@
 """Cash quality classification (G/A/B grades)."""
 
 from decimal import Decimal
-from typing import List, Literal
-from src.models import PeriodResult, CashQualityMetric
+from typing import Literal
+
+from src.models import CashQualityMetric, PeriodResult
 
 
-def classify_cash_quality(period_result: PeriodResult) -> List[CashQualityMetric]:
+def classify_cash_quality(period_result: PeriodResult) -> list[CashQualityMetric]:
     """
     Classify cash quality on multiple dimensions (G/A/B grades).
 
@@ -72,7 +73,7 @@ def classify_cash_quality(period_result: PeriodResult) -> List[CashQualityMetric
             return "A"
         return "B"
 
-    metrics: List[CashQualityMetric] = []
+    metrics: list[CashQualityMetric] = []
 
     # 1. OCF MARGIN: operating_cash_flow / net_revenue * 100
     ocf_margin = _safe_div(pr.operating_cash_flow, pr.net_revenue) * Decimal("100")

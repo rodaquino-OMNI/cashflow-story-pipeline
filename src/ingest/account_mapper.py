@@ -1,15 +1,15 @@
 """Account mapping from ERP codes to financial categories."""
 
-from pathlib import Path
-from typing import Dict, List, Tuple, Any
 from decimal import Decimal
+from pathlib import Path
+from typing import Any
+
 import yaml
 
 from src.models import AccountEntry, MappedData
 
-
 # Maps YAML config keys → MappedData field names
-_CATEGORY_FIELD_MAP: Dict[str, str] = {
+_CATEGORY_FIELD_MAP: dict[str, str] = {
     "revenue": "gross_revenue",
     "deductions": "returns_deductions",
     "cogs": "cogs",
@@ -32,12 +32,12 @@ class AccountMapper:
 
     def __init__(self, config_path: str) -> None:
         self.config_path = Path(config_path)
-        self.raw_config: Dict[str, Any] = {}
-        self.categories: Dict[str, Dict[str, Any]] = {}
-        self.reclassifications: List[Dict[str, str]] = []
+        self.raw_config: dict[str, Any] = {}
+        self.categories: dict[str, dict[str, Any]] = {}
+        self.reclassifications: list[dict[str, str]] = []
         self.exclusions: set = set()
         # Flat mapping: account_prefix -> category_key (e.g. "3.1" -> "revenue")
-        self.mapping: Dict[str, str] = {}
+        self.mapping: dict[str, str] = {}
         self.company_name: str = ""
         self.load_config()
 
@@ -50,7 +50,7 @@ class AccountMapper:
         if not self.config_path.exists():
             raise FileNotFoundError(f"Config not found: {self.config_path}")
 
-        with open(self.config_path, "r", encoding="utf-8") as fh:
+        with open(self.config_path, encoding="utf-8") as fh:
             self.raw_config = yaml.safe_load(fh)
 
         self.company_name = self.raw_config.get("company", {}).get("name", "")
@@ -89,7 +89,7 @@ class AccountMapper:
 
     def map_accounts(
         self,
-        accounts: List[AccountEntry],
+        accounts: list[AccountEntry],
         period: str,
     ) -> MappedData:
         """Map raw AccountEntry list into aggregated MappedData."""
@@ -97,7 +97,7 @@ class AccountMapper:
             self.load_config()
 
         # Step 1: apply reclassifications — change the effective code
-        effective: Dict[str, str] = {}
+        effective: dict[str, str] = {}
         for entry in accounts:
             new_code = entry.code
             for rc in self.reclassifications:
@@ -107,7 +107,7 @@ class AccountMapper:
             effective[entry.code] = new_code
 
         # Step 2: aggregate by category
-        totals: Dict[str, Decimal] = {k: Decimal("0") for k in self.categories}
+        totals: dict[str, Decimal] = {k: Decimal("0") for k in self.categories}
 
         for entry in accounts:
             ecode = effective[entry.code]
@@ -125,7 +125,7 @@ class AccountMapper:
                     break
 
         # Step 3: build MappedData kwargs
-        kwargs: Dict[str, Any] = {
+        kwargs: dict[str, Any] = {
             "company": self.company_name,
             "period": period,
         }
@@ -157,9 +157,9 @@ class AccountMapper:
     # Validation
     # ------------------------------------------------------------------
 
-    def validate_mapping(self, mapped: MappedData) -> Tuple[bool, List[str]]:
+    def validate_mapping(self, mapped: MappedData) -> tuple[bool, list[str]]:
         """Validate mapped data against business rules."""
-        messages: List[str] = []
+        messages: list[str] = []
         is_valid = True
 
         if mapped.gross_revenue <= Decimal("0"):

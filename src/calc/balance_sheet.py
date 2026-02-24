@@ -1,6 +1,5 @@
 """Balance sheet estimation and calculations."""
 
-from decimal import Decimal
 from src.models import PeriodResult
 
 

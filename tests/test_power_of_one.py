@@ -144,7 +144,7 @@ class TestPowerOfOne:
             operating_expenses=Decimal('2000000'),
             ebit=Decimal('2000000'),
             ebit_margin_pct=Decimal('20'),
-            investing_cash_flow=Decimal('-500000'),
+            other_capital_investment=Decimal('500000'),
         )
         levers = calculate_power_of_one(pr)
         revenue_lever = next(lv for lv in levers if lv.lever == "revenue")

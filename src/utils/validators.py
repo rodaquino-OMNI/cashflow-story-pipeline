@@ -1,19 +1,19 @@
 """Data validation functions."""
 
 from decimal import Decimal
-from typing import Tuple, List
-from src.models import PeriodResult, MappedData
+
+from src.models import MappedData, PeriodResult
 
 _TOLERANCE = Decimal("0.01")  # 1% tolerance for balance sheet equation
 
 
-def validate_balance_sheet(period_result: PeriodResult) -> Tuple[bool, List[str]]:
+def validate_balance_sheet(period_result: PeriodResult) -> tuple[bool, list[str]]:
     """
     Validate balance sheet equation: Assets = Liabilities + Equity.
 
     Derives cash from net_debt = total_debt - cash, so cash = total_debt - net_debt.
     """
-    messages: List[str] = []
+    messages: list[str] = []
     is_valid = True
 
     # Derive cash: net_debt = total_debt - cash => cash = total_debt - net_debt
@@ -59,11 +59,11 @@ def validate_balance_sheet(period_result: PeriodResult) -> Tuple[bool, List[str]
     return is_valid, messages
 
 
-def validate_cash_reconciliation(period_result: PeriodResult) -> Tuple[bool, List[str]]:
+def validate_cash_reconciliation(period_result: PeriodResult) -> tuple[bool, list[str]]:
     """
     Validate that OCF + ICF + financing = net_cash_flow.
     """
-    messages: List[str] = []
+    messages: list[str] = []
 
     # If no cash flows populated, skip
     if (period_result.operating_cash_flow == 0
@@ -94,11 +94,11 @@ def validate_cash_reconciliation(period_result: PeriodResult) -> Tuple[bool, Lis
     return True, messages
 
 
-def validate_period_data(mapped: MappedData) -> Tuple[bool, List[str]]:
+def validate_period_data(mapped: MappedData) -> tuple[bool, list[str]]:
     """
     Validate period data for completeness and reasonableness.
     """
-    messages: List[str] = []
+    messages: list[str] = []
     is_valid = True
 
     if mapped.gross_revenue <= 0:

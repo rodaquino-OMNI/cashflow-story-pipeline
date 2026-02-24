@@ -2,7 +2,6 @@
 
 from decimal import Decimal
 from pathlib import Path
-from typing import Dict, List, Optional
 
 try:
     from openpyxl import load_workbook  # type: ignore[import-untyped]
@@ -11,9 +10,8 @@ except ImportError:  # pragma: no cover
 
 from src.models import AccountEntry
 
-
 # Recognised header variants (lowered) → canonical name
-_HEADER_ALIASES: Dict[str, str] = {
+_HEADER_ALIASES: dict[str, str] = {
     "codigo": "code",
     "código": "code",
     "codigo da conta": "code",
@@ -41,7 +39,7 @@ _HEADER_ALIASES: Dict[str, str] = {
 class ERPExcelParser:
     """Parses Excel files containing ERP balancete and cash flow data."""
 
-    def __init__(self, file_path: str, sheet_name: Optional[str] = None) -> None:
+    def __init__(self, file_path: str, sheet_name: str | None = None) -> None:
         self.file_path = Path(file_path)
         self.sheet_name = sheet_name
 
@@ -68,7 +66,7 @@ class ERPExcelParser:
     def _detect_header_row(ws, max_scan: int = 20) -> tuple:
         """Return (row_index_0based, {canonical: col_index_0based})."""
         for row_idx, row in enumerate(ws.iter_rows(min_row=1, max_row=max_scan, values_only=True)):
-            mapping: Dict[str, int] = {}
+            mapping: dict[str, int] = {}
             for col_idx, cell in enumerate(row):
                 if cell is None:
                     continue
@@ -86,22 +84,19 @@ class ERPExcelParser:
         if not self.file_path.exists():
             raise FileNotFoundError(f"Excel file not found: {self.file_path}")
         wb = load_workbook(str(self.file_path), read_only=True, data_only=True)
-        if self.sheet_name:
-            ws = wb[self.sheet_name]
-        else:
-            ws = wb.active
+        ws = wb[self.sheet_name] if self.sheet_name else wb.active
         return wb, ws
 
     # ------------------------------------------------------------------
     # Balancete
     # ------------------------------------------------------------------
 
-    def parse_balancete(self, skip_rows: int = 0) -> List[AccountEntry]:
+    def parse_balancete(self, skip_rows: int = 0) -> list[AccountEntry]:
         """Parse balancete sheet — auto-detects header row and columns."""
         wb, ws = self._get_worksheet()
         try:
             header_row, col_map = self._detect_header_row(ws)
-            entries: List[AccountEntry] = []
+            entries: list[AccountEntry] = []
             data_start = header_row + 2 + skip_rows  # 1-based for openpyxl
 
             for row in ws.iter_rows(min_row=data_start, values_only=True):
@@ -128,12 +123,12 @@ class ERPExcelParser:
     # Fluxo de caixa
     # ------------------------------------------------------------------
 
-    def parse_fluxo_caixa(self, skip_rows: int = 0) -> List[AccountEntry]:
+    def parse_fluxo_caixa(self, skip_rows: int = 0) -> list[AccountEntry]:
         """Parse fluxo de caixa sheet from Excel."""
         wb, ws = self._get_worksheet()
         try:
             header_row, col_map = self._detect_header_row(ws)
-            entries: List[AccountEntry] = []
+            entries: list[AccountEntry] = []
             data_start = header_row + 2 + skip_rows
 
             for row in ws.iter_rows(min_row=data_start, values_only=True):

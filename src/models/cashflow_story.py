@@ -1,7 +1,8 @@
 """CashFlow Story analysis models for insights and narrative."""
 
 from decimal import Decimal
-from typing import Dict, Any, Literal
+from typing import Any, Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -9,7 +10,7 @@ class PowerOfOneLever(BaseModel):
     """
     Represents a single lever in the Power of One analysis.
     Each lever shows how a 1% change impacts profit and cash flow.
-    
+
     Attributes:
         lever: Lever identifier (e.g., "revenue", "cogs", "capex")
         label_pt: Portuguese label for display
@@ -31,14 +32,11 @@ class PowerOfOneLever(BaseModel):
     value_impact: Decimal = Field(default=Decimal("0"), description="Impact on value")
     category: str = Field(default="", description="Category of lever")
 
-    class Config:
-        json_encoders = {Decimal: lambda v: float(v)}
-
 
 class CashQualityMetric(BaseModel):
     """
     Represents a cash quality metric with grade (Good/Average/Below Average).
-    
+
     Attributes:
         metric: Metric identifier (e.g., "operating_cf_margin", "ccc_days")
         label_pt: Portuguese label
@@ -56,14 +54,11 @@ class CashQualityMetric(BaseModel):
     threshold_average: Decimal = Field(default=Decimal("0"), description="Average threshold")
     direction: Literal["higher", "lower"] = Field(default="higher", description="Better direction")
 
-    class Config:
-        json_encoders = {Decimal: lambda v: float(v)}
-
 
 class FourChaptersSummary(BaseModel):
     """
     Summary of cash flow story across 4 chapters.
-    
+
     Attributes:
         chapter_1_profit: Profitability chapter data (net_income, margin_pct, trends)
         chapter_2_working_capital: Working capital chapter data (investment, ccc, days)
@@ -71,19 +66,19 @@ class FourChaptersSummary(BaseModel):
         chapter_4_funding: Funding chapter data (debt, equity, debt_to_equity)
         overall_grade: Overall cash flow quality grade (G/A/B)
     """
-    chapter_1_profit: Dict[str, Any] = Field(
+    chapter_1_profit: dict[str, Any] = Field(
         default_factory=dict,
         description="Chapter 1 profitability summary"
     )
-    chapter_2_working_capital: Dict[str, Any] = Field(
+    chapter_2_working_capital: dict[str, Any] = Field(
         default_factory=dict,
         description="Chapter 2 working capital summary"
     )
-    chapter_3_other_capital: Dict[str, Any] = Field(
+    chapter_3_other_capital: dict[str, Any] = Field(
         default_factory=dict,
         description="Chapter 3 other capital summary"
     )
-    chapter_4_funding: Dict[str, Any] = Field(
+    chapter_4_funding: dict[str, Any] = Field(
         default_factory=dict,
         description="Chapter 4 funding summary"
     )
@@ -92,14 +87,11 @@ class FourChaptersSummary(BaseModel):
         description="Overall cash flow quality grade"
     )
 
-    class Config:
-        json_encoders = {Decimal: lambda v: float(v)}
-
 
 class ThreeBigMeasures(BaseModel):
     """
     The three most important cash flow measures for board presentation.
-    
+
     Attributes:
         net_cash_flow: Total change in cash (financing perspective)
         operating_cash_flow: Cash from operations (quality perspective)
@@ -109,10 +101,7 @@ class ThreeBigMeasures(BaseModel):
     net_cash_flow: Decimal = Field(..., description="Net change in cash")
     operating_cash_flow: Decimal = Field(..., description="Cash from operations")
     marginal_cash_flow: Decimal = Field(..., description="FCF% - WC% for growth analysis")
-    interpretations: Dict[str, str] = Field(
+    interpretations: dict[str, str] = Field(
         default_factory=dict,
         description="Portuguese interpretations for each measure"
     )
-
-    class Config:
-        json_encoders = {Decimal: lambda v: float(v)}
