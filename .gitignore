@@ -44,8 +44,12 @@ node_modules/
 agents/
 
 ### Claude Code ###
-.claude/memory.db
-.claude/worktrees/
+.claude/
+CLAUDE.md
+
+### Caches ###
+.pytest_cache/
+.ruff_cache/
 
 ### Environment ###
 .env
